@@ -554,8 +554,16 @@
   </div>
 
   <script>
-    const stripe = Stripe('pk_test_51RkxOTG8ujrWLRJRNLNAWROdftctJkDfduyrWOaRE6Y7QcCXhlhTTOdJfgY4HwJgVY9pfGXDT7vxmcSnZvxXsiI000ugxoTjbX');
+    let stripe = null;
     let checkout = null;
+
+    // Load Stripe with key from server
+    async function initStripe() {
+      const res = await fetch('/config');
+      const { publishableKey } = await res.json();
+      stripe = Stripe(publishableKey);
+    }
+    initStripe();
     let customFields = [];
     let shippingOptions = [];
     let metadata = {};

@@ -8,6 +8,11 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 4242;
 
+// Serve publishable key to frontend
+app.get('/config', (req, res) => {
+  res.json({ publishableKey: process.env.STRIPE_PUBLISHABLE_KEY });
+});
+
 // Create a checkout session for embedded checkout
 app.post('/create-checkout-session', async (req, res) => {
   try {
