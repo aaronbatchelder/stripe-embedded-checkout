@@ -86,7 +86,7 @@ app.post('/create-checkout-session', async (req, res) => {
       allow_promotion_codes: allowPromotionCodes,
       billing_address_collection: billingAddressCollection,
       locale: locale,
-      customer_creation: customerCreation,
+      ...(mode === 'payment' && { customer_creation: customerCreation }),
     };
 
     // Customer email prefill
