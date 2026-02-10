@@ -3,879 +3,509 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stripe Embedded Checkout Playground</title>
-  <script src="https://js.stripe.com/v3/"></script>
+  <title>Stripe Checkout Playground</title>
   <style>
     * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
-      padding: 20px;
+      padding: 40px 20px;
       background: #f6f9fc;
       min-height: 100vh;
+      color: #32325d;
     }
-    .container {
-      max-width: 1500px;
+    .page {
+      max-width: 1200px;
       margin: 0 auto;
-      display: grid;
-      grid-template-columns: 400px 1fr;
-      gap: 30px;
     }
     h1 {
-      grid-column: 1 / -1;
-      margin: 0 0 10px 0;
-      color: #32325d;
+      font-size: 32px;
+      margin: 0 0 8px;
     }
     .subtitle {
-      grid-column: 1 / -1;
       color: #6b7c93;
-      margin-bottom: 20px;
-    }
-    .controls {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      height: fit-content;
-      max-height: calc(100vh - 120px);
-      overflow-y: auto;
-      position: sticky;
-      top: 20px;
-    }
-    .controls h2 {
-      margin-top: 0;
-      color: #32325d;
       font-size: 16px;
-      border-bottom: 1px solid #e6ebf1;
-      padding-bottom: 10px;
+      margin: 0 0 40px;
+      max-width: 700px;
+      line-height: 1.5;
     }
-    .control-group {
+
+    /* Flavor Cards */
+    .flavors {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 60px;
+    }
+    .flavor-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .flavor-card:hover {
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+      transform: translateY(-2px);
+    }
+    .card-header {
+      padding: 24px 24px 16px;
+    }
+    .card-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 10px;
+      border-radius: 4px;
       margin-bottom: 12px;
     }
-    .control-group label {
-      display: block;
-      font-weight: 500;
-      color: #32325d;
-      margin-bottom: 4px;
-      font-size: 13px;
+    .card-badge.hosted { background: #e8f5e9; color: #2e7d32; }
+    .card-badge.embedded { background: #e8eaf6; color: #3949ab; }
+    .card-badge.components { background: #fce4ec; color: #c62828; }
+    .card-header h2 {
+      font-size: 20px;
+      margin: 0 0 4px;
     }
-    .control-group select,
-    .control-group input[type="text"],
-    .control-group input[type="number"],
-    .control-group input[type="email"] {
-      width: 100%;
-      padding: 8px 10px;
-      border: 1px solid #e6ebf1;
-      border-radius: 4px;
+    .card-header .card-desc {
+      color: #6b7c93;
       font-size: 14px;
+      margin: 0 0 16px;
+      line-height: 1.4;
     }
-    .control-group input[type="checkbox"] {
-      margin-right: 8px;
-    }
-    .checkbox-label {
+
+    /* Customization Meter */
+    .meter-row {
       display: flex;
       align-items: center;
-      font-weight: normal !important;
-      cursor: pointer;
+      gap: 10px;
+      margin-bottom: 4px;
     }
-    .section-title {
-      font-size: 11px;
-      text-transform: uppercase;
+    .meter-label {
+      font-size: 12px;
       color: #8898aa;
-      margin: 18px 0 8px;
-      letter-spacing: 0.5px;
-      font-weight: 600;
-    }
-    .section-title:first-of-type {
-      margin-top: 0;
-    }
-    button {
-      background: #635bff;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 4px;
-      font-size: 14px;
       font-weight: 500;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      width: 110px;
     }
-    button:hover { background: #5469d4; }
-    button:disabled { background: #9fa8b3; cursor: not-allowed; }
-    button.secondary { background: #e6ebf1; color: #32325d; margin-top: 8px; }
-    button.secondary:hover { background: #d4dbe3; }
-    button.small { padding: 6px 12px; font-size: 12px; width: auto; margin: 0; }
-    .checkout-container {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      border: 2px solid #635bff;
-      min-height: 600px;
+    .meter-bar {
+      flex: 1;
+      height: 8px;
+      background: #e6ebf1;
+      border-radius: 4px;
       overflow: hidden;
     }
-    #checkout { min-height: 600px; }
-    .loading {
+    .meter-fill {
+      height: 100%;
+      border-radius: 4px;
+    }
+    .meter-fill.low { width: 25%; background: #4caf50; }
+    .meter-fill.medium { width: 55%; background: #635bff; }
+    .meter-fill.high { width: 95%; background: #e91e63; }
+
+    /* Feature Lists */
+    .card-body {
+      padding: 0 24px 24px;
+      flex: 1;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 600px;
-      color: #6b7c93;
+      flex-direction: column;
     }
-    .error {
-      padding: 20px;
-      color: #cd3d64;
-      background: #ffeef1;
-      border-radius: 4px;
-      margin: 20px;
+    .feature-section {
+      margin-bottom: 16px;
     }
-    .custom-field-builder, .shipping-builder, .metadata-builder {
-      background: #f6f9fc;
-      padding: 10px;
-      border-radius: 4px;
-      margin-top: 8px;
-    }
-    .item-row {
-      background: white;
-      padding: 8px;
-      border-radius: 4px;
-      margin-bottom: 8px;
-      font-size: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .item-row button {
-      background: #cd3d64;
-      padding: 4px 8px;
+    .feature-section h3 {
       font-size: 11px;
-      width: auto;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 8px;
+      font-weight: 600;
+    }
+    .feature-section h3.can { color: #2e7d32; }
+    .feature-section h3.cant { color: #c62828; }
+    .feature-list {
+      list-style: none;
+      padding: 0;
       margin: 0;
     }
-    .add-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr auto;
-      gap: 5px;
-      margin-top: 8px;
+    .feature-list li {
+      font-size: 13px;
+      color: #525f7f;
+      padding: 3px 0;
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.4;
     }
-    .add-row.four-col {
-      grid-template-columns: 1fr 1fr 1fr auto;
+    .feature-list.yes li::before {
+      content: '+';
+      position: absolute;
+      left: 0;
+      color: #4caf50;
+      font-weight: bold;
     }
-    .add-row input, .add-row select {
-      padding: 6px;
-      font-size: 12px;
+    .feature-list.no li::before {
+      content: '\2013';
+      position: absolute;
+      left: 0;
+      color: #cd3d64;
+      font-weight: bold;
     }
-    .add-row button {
-      padding: 6px 10px;
-      margin: 0;
+
+    .card-footer {
+      padding: 0 24px 24px;
     }
-    .info-box {
-      background: #e3f2fd;
-      color: #1565c0;
-      padding: 10px;
-      border-radius: 4px;
-      font-size: 12px;
-      margin-top: 10px;
-    }
-    .warning-box {
-      background: #fff3e0;
-      color: #e65100;
-      padding: 10px;
-      border-radius: 4px;
-      font-size: 12px;
-      margin-top: 8px;
-    }
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .three-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-    }
-    .payment-methods {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5px;
-      background: #f6f9fc;
-      padding: 10px;
-      border-radius: 4px;
-      margin-top: 8px;
-    }
-    .payment-methods label {
-      font-size: 12px;
-      font-weight: normal;
-    }
-    .collapsible {
-      cursor: pointer;
-      user-select: none;
-    }
-    .collapsible::after {
-      content: ' +';
-      float: right;
-    }
-    .collapsible.active::after {
-      content: ' -';
-    }
-    .collapsible-content {
-      display: none;
-    }
-    .collapsible-content.show {
+    .card-footer a {
       display: block;
+      text-align: center;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s;
     }
-    .coupon-list {
-      background: #f6f9fc;
-      padding: 10px;
-      border-radius: 4px;
-      margin-top: 8px;
-      max-height: 150px;
-      overflow-y: auto;
-    }
-    .coupon-item {
+    .card-footer a.hosted-btn { background: #e8f5e9; color: #2e7d32; }
+    .card-footer a.hosted-btn:hover { background: #c8e6c9; }
+    .card-footer a.embedded-btn { background: #e8eaf6; color: #3949ab; }
+    .card-footer a.embedded-btn:hover { background: #c5cae9; }
+    .card-footer a.components-btn { background: #fce4ec; color: #c62828; }
+    .card-footer a.components-btn:hover { background: #f8bbd0; }
+
+    /* Comparison Table */
+    .comparison-section {
       background: white;
-      padding: 8px;
-      border-radius: 4px;
-      margin-bottom: 5px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 32px;
+      margin-bottom: 40px;
+    }
+    .comparison-section h2 {
+      font-size: 20px;
+      margin: 0 0 4px;
+    }
+    .comparison-section .table-subtitle {
+      color: #6b7c93;
+      font-size: 14px;
+      margin: 0 0 24px;
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .comparison-table th {
+      text-align: left;
       font-size: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #8898aa;
+      padding: 10px 12px;
+      border-bottom: 2px solid #e6ebf1;
+      font-weight: 600;
     }
-    .coupon-item:hover {
-      background: #e3f2fd;
+    .comparison-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f3f7;
+      font-size: 14px;
+      color: #525f7f;
     }
-    .coupon-item.selected {
-      background: #c8e6c9;
-      border: 1px solid #4caf50;
+    .comparison-table tr:last-child td {
+      border-bottom: none;
     }
+    .comparison-table td:first-child {
+      font-weight: 500;
+      color: #32325d;
+    }
+    .check { color: #4caf50; font-weight: bold; }
+    .cross { color: #cd3d64; }
+    .partial { color: #ff9800; font-size: 13px; }
+
+    /* Key Takeaway */
+    .takeaway {
+      background: #f0f4ff;
+      border-left: 4px solid #635bff;
+      padding: 20px 24px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 40px;
+    }
+    .takeaway h3 {
+      font-size: 15px;
+      margin: 0 0 8px;
+      color: #32325d;
+    }
+    .takeaway p {
+      font-size: 14px;
+      color: #525f7f;
+      margin: 0;
+      line-height: 1.6;
+    }
+
     @media (max-width: 900px) {
-      .container { grid-template-columns: 1fr; }
-      .controls { position: static; max-height: none; }
+      .flavors { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Stripe Embedded Checkout Playground</h1>
-    <p class="subtitle">Customize options, then click "Load Checkout" to see changes</p>
+  <div class="page">
+    <h1>Stripe Checkout Playground</h1>
+    <p class="subtitle">Compare the three ways to integrate Stripe Checkout. Each offers a different balance of simplicity vs. design control. Click into any flavor to try it live.</p>
 
-    <div class="controls">
-      <h2>Customization Options</h2>
-
-      <!-- MODE & PRODUCT -->
-      <div class="section-title">Mode & Product</div>
-      <div class="two-col">
-        <div class="control-group">
-          <label for="mode">Payment Mode</label>
-          <select id="mode" onchange="toggleSubscriptionOptions()">
-            <option value="payment">One-time Payment</option>
-            <option value="subscription">Subscription</option>
-          </select>
-        </div>
-        <div class="control-group">
-          <label for="submitType">Button Type</label>
-          <select id="submitType">
-            <option value="auto">Auto</option>
-            <option value="pay">Pay</option>
-            <option value="book">Book</option>
-            <option value="donate">Donate</option>
-          </select>
-        </div>
-      </div>
-      <div class="control-group">
-        <label for="productName">Product Name</label>
-        <input type="text" id="productName" value="Sample Product">
-      </div>
-      <div class="three-col">
-        <div class="control-group">
-          <label for="productPrice">Price (cents)</label>
-          <input type="number" id="productPrice" value="2000">
-        </div>
-        <div class="control-group">
-          <label for="productQuantity">Quantity</label>
-          <input type="number" id="productQuantity" value="1" min="1">
-        </div>
-        <div class="control-group">
-          <label for="currency">Currency</label>
-          <select id="currency">
-            <option value="usd">USD</option>
-            <option value="eur">EUR</option>
-            <option value="gbp">GBP</option>
-            <option value="cad">CAD</option>
-            <option value="aud">AUD</option>
-            <option value="jpy">JPY</option>
-          </select>
-        </div>
-      </div>
-      <div class="control-group">
-        <label for="locale">Language / Locale</label>
-        <select id="locale">
-          <option value="auto">Auto-detect</option>
-          <option value="en">English</option>
-          <option value="es">Spanish</option>
-          <option value="fr">French</option>
-          <option value="de">German</option>
-          <option value="it">Italian</option>
-          <option value="ja">Japanese</option>
-          <option value="zh">Chinese</option>
-          <option value="pt">Portuguese</option>
-          <option value="nl">Dutch</option>
-          <option value="pl">Polish</option>
-          <option value="ru">Russian</option>
-        </select>
-      </div>
-
-      <!-- SUBSCRIPTION OPTIONS -->
-      <div id="subscriptionOptions" style="display:none;">
-        <div class="section-title">Subscription Options</div>
-        <div class="control-group">
-          <label for="trialDays">Free Trial (days)</label>
-          <input type="number" id="trialDays" placeholder="e.g., 14" min="1" max="730">
-        </div>
-      </div>
-
-      <!-- CUSTOMER & PREFILL -->
-      <div class="section-title">Customer & Prefill</div>
-      <div class="control-group">
-        <label for="customerEmail">Prefill Email (optional)</label>
-        <input type="email" id="customerEmail" placeholder="customer@example.com">
-      </div>
-      <div class="control-group">
-        <label for="customerCreation">Customer Creation</label>
-        <select id="customerCreation">
-          <option value="if_required">If Required</option>
-          <option value="always">Always Create</option>
-        </select>
-      </div>
-
-      <!-- DATA COLLECTION -->
-      <div class="section-title">Data Collection</div>
-      <div class="control-group">
-        <label class="checkbox-label">
-          <input type="checkbox" id="phoneCollection">
-          Collect Phone Number
-        </label>
-      </div>
-      <div class="control-group">
-        <label class="checkbox-label">
-          <input type="checkbox" id="shippingCollection">
-          Collect Shipping Address
-        </label>
-      </div>
-      <div class="control-group">
-        <label for="billingAddressCollection">Billing Address</label>
-        <select id="billingAddressCollection">
-          <option value="auto">Auto (only when needed)</option>
-          <option value="required">Always Required</option>
-        </select>
-      </div>
-      <div class="control-group">
-        <label class="checkbox-label">
-          <input type="checkbox" id="taxIdCollection">
-          Collect Tax ID (VAT, etc.)
-        </label>
-      </div>
-      <div class="control-group">
-        <label class="checkbox-label">
-          <input type="checkbox" id="adjustableQuantity">
-          Allow Quantity Adjustment
-        </label>
-      </div>
-      <div class="control-group">
-        <label class="checkbox-label">
-          <input type="checkbox" id="promotionCodes">
-          Allow Promotion Codes
-        </label>
-      </div>
-
-      <!-- SHIPPING OPTIONS -->
-      <div class="section-title collapsible" onclick="toggleSection(this)">Shipping Rates</div>
-      <div class="collapsible-content">
-        <p style="font-size:12px;color:#6b7c93;margin:8px 0;">Define shipping options customers can choose from</p>
-        <div class="shipping-builder">
-          <div id="shippingList"></div>
-          <div class="add-row four-col">
-            <input type="text" id="shippingName" placeholder="Name">
-            <input type="number" id="shippingPrice" placeholder="Price (cents)">
-            <input type="text" id="shippingDays" placeholder="Days (e.g., 3-5)">
-            <button onclick="addShippingOption()">+</button>
+    <div class="flavors">
+      <!-- Stripe-hosted -->
+      <div class="flavor-card">
+        <div class="card-header">
+          <div class="card-badge hosted">Stripe-hosted</div>
+          <h2>Hosted Checkout Page</h2>
+          <p class="card-desc">Redirect customers to a Stripe-hosted payment page. Zero frontend code &mdash; Stripe handles the entire UI.</p>
+          <div class="meter-row">
+            <span class="meter-label">UI Control</span>
+            <div class="meter-bar"><div class="meter-fill low"></div></div>
+          </div>
+          <div class="meter-row">
+            <span class="meter-label">Dev Effort</span>
+            <div class="meter-bar"><div class="meter-fill low"></div></div>
           </div>
         </div>
-      </div>
-
-      <!-- TAX -->
-      <div class="section-title collapsible" onclick="toggleSection(this)">Tax</div>
-      <div class="collapsible-content">
-        <div class="control-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="automaticTax">
-            Enable Automatic Tax (Stripe Tax)
-          </label>
-        </div>
-        <div class="warning-box">
-          Requires Stripe Tax to be set up in your dashboard. May fail if not configured.
-        </div>
-      </div>
-
-      <!-- DISCOUNTS -->
-      <div class="section-title collapsible" onclick="toggleSection(this)">Discounts / Coupons</div>
-      <div class="collapsible-content">
-        <p style="font-size:12px;color:#6b7c93;margin:8px 0;">Pre-apply a discount to the checkout</p>
-        <button class="small secondary" onclick="loadCoupons()">Load Coupons</button>
-        <button class="small secondary" onclick="createTestCoupon()">Create Test Coupon</button>
-        <div class="coupon-list" id="couponList">
-          <p style="color:#6b7c93;margin:0;">Click "Load Coupons" to see available coupons</p>
-        </div>
-        <input type="hidden" id="selectedCoupon" value="">
-      </div>
-
-      <!-- PAYMENT METHODS -->
-      <div class="section-title collapsible" onclick="toggleSection(this)">Payment Methods</div>
-      <div class="collapsible-content">
-        <p style="font-size:12px;color:#6b7c93;margin:8px 0;">Leave all unchecked for Stripe defaults</p>
-        <div class="payment-methods">
-          <label class="checkbox-label"><input type="checkbox" value="card" class="pmType"> Card</label>
-          <label class="checkbox-label"><input type="checkbox" value="us_bank_account" class="pmType"> ACH</label>
-          <label class="checkbox-label"><input type="checkbox" value="link" class="pmType"> Link</label>
-          <label class="checkbox-label"><input type="checkbox" value="affirm" class="pmType"> Affirm</label>
-          <label class="checkbox-label"><input type="checkbox" value="afterpay_clearpay" class="pmType"> Afterpay</label>
-          <label class="checkbox-label"><input type="checkbox" value="klarna" class="pmType"> Klarna</label>
-          <label class="checkbox-label"><input type="checkbox" value="cashapp" class="pmType"> Cash App</label>
-          <label class="checkbox-label"><input type="checkbox" value="paypal" class="pmType"> PayPal</label>
-        </div>
-      </div>
-
-      <!-- CUSTOM FIELDS -->
-      <div class="section-title collapsible" onclick="toggleSection(this)">Custom Fields (max 3)</div>
-      <div class="collapsible-content">
-        <div class="custom-field-builder">
-          <div id="customFieldsList"></div>
-          <div class="add-row">
-            <input type="text" id="newFieldLabel" placeholder="Label">
-            <select id="newFieldType">
-              <option value="text">Text</option>
-              <option value="dropdown">Dropdown</option>
-              <option value="numeric">Numeric</option>
-            </select>
-            <button onclick="addCustomField()">+</button>
+        <div class="card-body">
+          <div class="feature-section">
+            <h3 class="can">You can configure</h3>
+            <ul class="feature-list yes">
+              <li>Products, pricing, currency</li>
+              <li>Data collection (phone, address, tax ID)</li>
+              <li>Custom fields (up to 3)</li>
+              <li>Custom text messages</li>
+              <li>Promotion codes &amp; coupons</li>
+              <li>Branding (logo, colors via Dashboard)</li>
+            </ul>
+          </div>
+          <div class="feature-section">
+            <h3 class="cant">You cannot customize</h3>
+            <ul class="feature-list no">
+              <li>Page layout or structure</li>
+              <li>Typography or fonts</li>
+              <li>Field ordering or grouping</li>
+              <li>Custom HTML, CSS, or JavaScript</li>
+              <li>Surrounding page context</li>
+            </ul>
           </div>
         </div>
-      </div>
-
-      <!-- CUSTOM MESSAGES -->
-      <div class="section-title collapsible" onclick="toggleSection(this)">Custom Messages</div>
-      <div class="collapsible-content">
-        <div class="control-group">
-          <label for="submitMessage">Submit Button Message</label>
-          <input type="text" id="submitMessage" placeholder="e.g., Your order ships in 2 days">
-        </div>
-        <div class="control-group">
-          <label for="termsMessage">Terms of Service Text</label>
-          <input type="text" id="termsMessage" placeholder="e.g., I agree to the terms">
-        </div>
-        <div class="control-group">
-          <label for="shippingMessage">Shipping Info Message</label>
-          <input type="text" id="shippingMessage" placeholder="e.g., Free shipping over $50">
+        <div class="card-footer">
+          <a href="/hosted.html" class="hosted-btn">Try Hosted Checkout &rarr;</a>
         </div>
       </div>
 
-      <!-- CONSENT -->
-      <div class="section-title collapsible" onclick="toggleSection(this)">Consent & Terms</div>
-      <div class="collapsible-content">
-        <div class="control-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="termsConsent">
-            Require Terms Acceptance
-          </label>
-        </div>
-        <div class="control-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="promotionsConsent">
-            Marketing Opt-in
-          </label>
-        </div>
-      </div>
-
-      <!-- METADATA -->
-      <div class="section-title collapsible" onclick="toggleSection(this)">Metadata</div>
-      <div class="collapsible-content">
-        <p style="font-size:12px;color:#6b7c93;margin:8px 0;">Attach custom key/value data to the session</p>
-        <div class="metadata-builder">
-          <div id="metadataList"></div>
-          <div class="add-row">
-            <input type="text" id="metaKey" placeholder="Key">
-            <input type="text" id="metaValue" placeholder="Value">
-            <button onclick="addMetadata()">+</button>
+      <!-- Embedded Checkout -->
+      <div class="flavor-card">
+        <div class="card-header">
+          <div class="card-badge embedded">Embedded Checkout</div>
+          <h2>Embedded Form</h2>
+          <p class="card-desc">Drop a pre-built checkout form into your page. Stripe renders the form in an iframe &mdash; you control the surrounding experience.</p>
+          <div class="meter-row">
+            <span class="meter-label">UI Control</span>
+            <div class="meter-bar"><div class="meter-fill medium"></div></div>
+          </div>
+          <div class="meter-row">
+            <span class="meter-label">Dev Effort</span>
+            <div class="meter-bar"><div class="meter-fill low"></div></div>
           </div>
         </div>
+        <div class="card-body">
+          <div class="feature-section">
+            <h3 class="can">You can configure</h3>
+            <ul class="feature-list yes">
+              <li>Everything in hosted, plus&hellip;</li>
+              <li>Embed on your own page</li>
+              <li>Surrounding page layout &amp; content</li>
+              <li>Theme colors &amp; fonts (Appearance API)</li>
+              <li>Background color matching</li>
+            </ul>
+          </div>
+          <div class="feature-section">
+            <h3 class="cant">You cannot customize</h3>
+            <ul class="feature-list no">
+              <li>Internal form field layout</li>
+              <li>Custom HTML inside the form</li>
+              <li>Field-level validation messages</li>
+              <li>Element ordering or grouping</li>
+              <li>Custom animations within the form</li>
+            </ul>
+          </div>
+        </div>
+        <div class="card-footer">
+          <a href="/embedded.html" class="embedded-btn">Try Embedded Checkout &rarr;</a>
+        </div>
       </div>
 
-      <!-- ADVANCED -->
-      <div class="section-title collapsible" onclick="toggleSection(this)">Advanced</div>
-      <div class="collapsible-content">
-        <div class="control-group">
-          <label for="expiresIn">Session Expires In (minutes)</label>
-          <input type="number" id="expiresIn" placeholder="Default: 24 hours" min="30" max="1440">
+      <!-- Embedded Components -->
+      <div class="flavor-card">
+        <div class="card-header">
+          <div class="card-badge components">Embedded Components</div>
+          <h2>Custom Payment Form</h2>
+          <p class="card-desc">Build your own checkout using Stripe Elements. Full control over layout, fields, and styling &mdash; you design the entire experience.</p>
+          <div class="meter-row">
+            <span class="meter-label">UI Control</span>
+            <div class="meter-bar"><div class="meter-fill high"></div></div>
+          </div>
+          <div class="meter-row">
+            <span class="meter-label">Dev Effort</span>
+            <div class="meter-bar"><div class="meter-fill high"></div></div>
+          </div>
         </div>
-        <div class="control-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="recoveryEnabled">
-            Enable Session Recovery (after expiration)
-          </label>
+        <div class="card-body">
+          <div class="feature-section">
+            <h3 class="can">You can configure</h3>
+            <ul class="feature-list yes">
+              <li>Complete form layout &amp; structure</li>
+              <li>Full CSS / design system control</li>
+              <li>Custom fields anywhere in the form</li>
+              <li>Multi-step / wizard flows</li>
+              <li>Conditional logic &amp; validation</li>
+              <li>Custom animations &amp; transitions</li>
+            </ul>
+          </div>
+          <div class="feature-section">
+            <h3 class="cant">Trade-offs</h3>
+            <ul class="feature-list no">
+              <li>More code to write &amp; maintain</li>
+              <li>You handle form state &amp; validation</li>
+              <li>Must manage payment confirmation</li>
+              <li>More testing surface area</li>
+            </ul>
+          </div>
         </div>
-        <div class="control-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="invoiceCreation">
-            Create Invoice (payment mode only)
-          </label>
+        <div class="card-footer">
+          <a href="/custom.html" class="components-btn">Try Custom Form &rarr;</a>
         </div>
-      </div>
-
-      <button onclick="loadCheckout()">Load Checkout</button>
-      <button class="secondary" onclick="resetOptions()">Reset to Defaults</button>
-
-      <div class="info-box">
-        <strong>Test Cards:</strong><br>
-        Success: 4242 4242 4242 4242<br>
-        Decline: 4000 0000 0000 0002<br>
-        3D Secure: 4000 0027 6000 3184<br>
-        <br>Exp: Any future | CVC: Any 3 digits
       </div>
     </div>
 
-    <div class="checkout-container">
-      <div id="checkout">
-        <div class="loading">Click "Load Checkout" to start</div>
-      </div>
+    <!-- Key Takeaway -->
+    <div class="takeaway">
+      <h3>The design trade-off</h3>
+      <p>Moving from Hosted to Embedded to Custom gives progressively more design control, but also requires more engineering work. Hosted and Embedded Checkout are maintained by Stripe &mdash; they handle accessibility, localization, payment method updates, and compliance automatically. With Custom forms, your team owns all of that.</p>
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="comparison-section">
+      <h2>Feature Comparison</h2>
+      <p class="table-subtitle">Detailed breakdown of what each integration type supports</p>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Hosted</th>
+            <th>Embedded</th>
+            <th>Custom (Elements)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Renders on your page</td>
+            <td class="cross">No (redirect)</td>
+            <td class="check">Yes (iframe)</td>
+            <td class="check">Yes (inline)</td>
+          </tr>
+          <tr>
+            <td>Custom page layout</td>
+            <td class="cross">No</td>
+            <td><span class="partial">Surrounding only</span></td>
+            <td class="check">Full control</td>
+          </tr>
+          <tr>
+            <td>Custom colors &amp; fonts</td>
+            <td><span class="partial">Logo + brand color (Dashboard)</span></td>
+            <td class="check">Appearance API</td>
+            <td class="check">Full CSS</td>
+          </tr>
+          <tr>
+            <td>Custom fields</td>
+            <td class="check">Up to 3 (Stripe-rendered)</td>
+            <td class="check">Up to 3 (Stripe-rendered)</td>
+            <td class="check">Unlimited (your own HTML)</td>
+          </tr>
+          <tr>
+            <td>Custom form field order</td>
+            <td class="cross">No</td>
+            <td class="cross">No</td>
+            <td class="check">Yes</td>
+          </tr>
+          <tr>
+            <td>Multi-step checkout</td>
+            <td class="cross">No</td>
+            <td class="cross">No</td>
+            <td class="check">Yes</td>
+          </tr>
+          <tr>
+            <td>Phone / address collection</td>
+            <td class="check">Yes</td>
+            <td class="check">Yes</td>
+            <td class="check">Yes (your own UI)</td>
+          </tr>
+          <tr>
+            <td>Promotion codes</td>
+            <td class="check">Yes</td>
+            <td class="check">Yes</td>
+            <td><span class="partial">Manual implementation</span></td>
+          </tr>
+          <tr>
+            <td>Subscriptions</td>
+            <td class="check">Yes</td>
+            <td class="check">Yes</td>
+            <td><span class="partial">Via PaymentIntent + setup</span></td>
+          </tr>
+          <tr>
+            <td>Shipping options</td>
+            <td class="check">Yes (Stripe UI)</td>
+            <td class="check">Yes (Stripe UI)</td>
+            <td class="check">Yes (your own UI)</td>
+          </tr>
+          <tr>
+            <td>Automatic tax</td>
+            <td class="check">Yes</td>
+            <td class="check">Yes</td>
+            <td><span class="partial">Via Tax API</span></td>
+          </tr>
+          <tr>
+            <td>Payment method support</td>
+            <td class="check">40+ methods</td>
+            <td class="check">40+ methods</td>
+            <td class="check">40+ methods</td>
+          </tr>
+          <tr>
+            <td>Localization</td>
+            <td class="check">Automatic (40+ locales)</td>
+            <td class="check">Automatic (40+ locales)</td>
+            <td><span class="partial">PaymentElement auto, rest manual</span></td>
+          </tr>
+          <tr>
+            <td>PCI compliance scope</td>
+            <td class="check">SAQ A (simplest)</td>
+            <td class="check">SAQ A</td>
+            <td class="check">SAQ A (with Elements)</td>
+          </tr>
+          <tr>
+            <td>Custom submit button</td>
+            <td><span class="partial">Pay/Book/Donate labels</span></td>
+            <td><span class="partial">Pay/Book/Donate labels</span></td>
+            <td class="check">Fully custom</td>
+          </tr>
+          <tr>
+            <td>Custom validation</td>
+            <td class="cross">No</td>
+            <td class="cross">No</td>
+            <td class="check">Yes</td>
+          </tr>
+          <tr>
+            <td>Custom error messages</td>
+            <td class="cross">No</td>
+            <td class="cross">No</td>
+            <td class="check">Yes</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
-
-  <script>
-    let stripe = null;
-    let checkout = null;
-
-    // Load Stripe with key from server
-    async function initStripe() {
-      const res = await fetch('/config');
-      const { publishableKey } = await res.json();
-      stripe = Stripe(publishableKey);
-    }
-    initStripe();
-    let customFields = [];
-    let shippingOptions = [];
-    let metadata = {};
-    let coupons = [];
-    let selectedCouponId = null;
-
-    function toggleSection(el) {
-      el.classList.toggle('active');
-      el.nextElementSibling.classList.toggle('show');
-    }
-
-    function toggleSubscriptionOptions() {
-      const mode = document.getElementById('mode').value;
-      document.getElementById('subscriptionOptions').style.display = mode === 'subscription' ? 'block' : 'none';
-    }
-
-    // Custom Fields
-    function addCustomField() {
-      if (customFields.length >= 3) {
-        alert('Maximum 3 custom fields allowed');
-        return;
-      }
-      const label = document.getElementById('newFieldLabel').value.trim();
-      const type = document.getElementById('newFieldType').value;
-      if (!label) return alert('Please enter a label');
-      const field = {
-        key: label.toLowerCase().replace(/\s+/g, '_'),
-        label: { type: 'custom', custom: label },
-        type: type,
-      };
-      if (type === 'dropdown') {
-        field.dropdown = {
-          options: [
-            { label: 'Option 1', value: 'opt1' },
-            { label: 'Option 2', value: 'opt2' },
-            { label: 'Option 3', value: 'opt3' },
-          ],
-        };
-      }
-      customFields.push(field);
-      renderCustomFields();
-      document.getElementById('newFieldLabel').value = '';
-    }
-
-    function removeCustomField(index) {
-      customFields.splice(index, 1);
-      renderCustomFields();
-    }
-
-    function renderCustomFields() {
-      document.getElementById('customFieldsList').innerHTML = customFields.map((field, i) => `
-        <div class="item-row">
-          <span>${field.label.custom} (${field.type})</span>
-          <button onclick="removeCustomField(${i})">X</button>
-        </div>
-      `).join('');
-    }
-
-    // Shipping Options
-    function addShippingOption() {
-      const name = document.getElementById('shippingName').value.trim();
-      const price = parseInt(document.getElementById('shippingPrice').value) || 0;
-      const days = document.getElementById('shippingDays').value.trim();
-      if (!name) return alert('Please enter a shipping name');
-
-      shippingOptions.push({
-        shipping_rate_data: {
-          type: 'fixed_amount',
-          fixed_amount: { amount: price, currency: document.getElementById('currency').value },
-          display_name: name,
-          delivery_estimate: days ? {
-            minimum: { unit: 'business_day', value: parseInt(days.split('-')[0]) || 1 },
-            maximum: { unit: 'business_day', value: parseInt(days.split('-')[1]) || parseInt(days.split('-')[0]) || 5 },
-          } : undefined,
-        },
-      });
-      renderShippingOptions();
-      document.getElementById('shippingName').value = '';
-      document.getElementById('shippingPrice').value = '';
-      document.getElementById('shippingDays').value = '';
-    }
-
-    function removeShippingOption(index) {
-      shippingOptions.splice(index, 1);
-      renderShippingOptions();
-    }
-
-    function renderShippingOptions() {
-      document.getElementById('shippingList').innerHTML = shippingOptions.map((opt, i) => `
-        <div class="item-row">
-          <span>${opt.shipping_rate_data.display_name} - $${(opt.shipping_rate_data.fixed_amount.amount / 100).toFixed(2)}</span>
-          <button onclick="removeShippingOption(${i})">X</button>
-        </div>
-      `).join('');
-    }
-
-    // Metadata
-    function addMetadata() {
-      const key = document.getElementById('metaKey').value.trim();
-      const value = document.getElementById('metaValue').value.trim();
-      if (!key || !value) return alert('Please enter both key and value');
-      metadata[key] = value;
-      renderMetadata();
-      document.getElementById('metaKey').value = '';
-      document.getElementById('metaValue').value = '';
-    }
-
-    function removeMetadata(key) {
-      delete metadata[key];
-      renderMetadata();
-    }
-
-    function renderMetadata() {
-      document.getElementById('metadataList').innerHTML = Object.entries(metadata).map(([k, v]) => `
-        <div class="item-row">
-          <span><strong>${k}:</strong> ${v}</span>
-          <button onclick="removeMetadata('${k}')">X</button>
-        </div>
-      `).join('');
-    }
-
-    // Coupons
-    async function loadCoupons() {
-      try {
-        const res = await fetch('/coupons');
-        coupons = await res.json();
-        renderCoupons();
-      } catch (e) {
-        alert('Error loading coupons: ' + e.message);
-      }
-    }
-
-    async function createTestCoupon() {
-      try {
-        const res = await fetch('/create-test-coupon', { method: 'POST' });
-        const coupon = await res.json();
-        if (coupon.error) throw new Error(coupon.error);
-        alert('Created coupon: ' + coupon.name);
-        loadCoupons();
-      } catch (e) {
-        alert('Error creating coupon: ' + e.message);
-      }
-    }
-
-    function selectCoupon(id) {
-      selectedCouponId = selectedCouponId === id ? null : id;
-      document.getElementById('selectedCoupon').value = selectedCouponId || '';
-      renderCoupons();
-    }
-
-    function renderCoupons() {
-      if (coupons.length === 0) {
-        document.getElementById('couponList').innerHTML = '<p style="color:#6b7c93;margin:0;">No coupons found. Create one or check your Stripe dashboard.</p>';
-        return;
-      }
-      document.getElementById('couponList').innerHTML = coupons.map(c => `
-        <div class="coupon-item ${selectedCouponId === c.id ? 'selected' : ''}" onclick="selectCoupon('${c.id}')">
-          <span>${c.name || c.id} - ${c.percent_off ? c.percent_off + '%' : '$' + (c.amount_off / 100)} off</span>
-          ${selectedCouponId === c.id ? '<span>✓</span>' : ''}
-        </div>
-      `).join('');
-    }
-
-    function resetOptions() {
-      document.getElementById('mode').value = 'payment';
-      document.getElementById('submitType').value = 'auto';
-      document.getElementById('productName').value = 'Sample Product';
-      document.getElementById('productPrice').value = '2000';
-      document.getElementById('productQuantity').value = '1';
-      document.getElementById('currency').value = 'usd';
-      document.getElementById('locale').value = 'auto';
-      document.getElementById('customerEmail').value = '';
-      document.getElementById('customerCreation').value = 'if_required';
-      document.getElementById('phoneCollection').checked = false;
-      document.getElementById('shippingCollection').checked = false;
-      document.getElementById('billingAddressCollection').value = 'auto';
-      document.getElementById('taxIdCollection').checked = false;
-      document.getElementById('adjustableQuantity').checked = false;
-      document.getElementById('promotionCodes').checked = false;
-      document.getElementById('automaticTax').checked = false;
-      document.getElementById('submitMessage').value = '';
-      document.getElementById('termsMessage').value = '';
-      document.getElementById('shippingMessage').value = '';
-      document.getElementById('termsConsent').checked = false;
-      document.getElementById('promotionsConsent').checked = false;
-      document.getElementById('expiresIn').value = '';
-      document.getElementById('recoveryEnabled').checked = false;
-      document.getElementById('invoiceCreation').checked = false;
-      document.getElementById('trialDays').value = '';
-      document.querySelectorAll('.pmType').forEach(cb => cb.checked = false);
-      customFields = [];
-      shippingOptions = [];
-      metadata = {};
-      selectedCouponId = null;
-      renderCustomFields();
-      renderShippingOptions();
-      renderMetadata();
-      renderCoupons();
-      toggleSubscriptionOptions();
-    }
-
-    async function loadCheckout() {
-      const checkoutDiv = document.getElementById('checkout');
-      checkoutDiv.innerHTML = '<div class="loading">Loading checkout...</div>';
-
-      const pmTypes = [];
-      document.querySelectorAll('.pmType:checked').forEach(cb => pmTypes.push(cb.value));
-
-      const body = {
-        mode: document.getElementById('mode').value,
-        submitType: document.getElementById('submitType').value,
-        currency: document.getElementById('currency').value,
-        locale: document.getElementById('locale').value,
-        customerCreation: document.getElementById('customerCreation').value,
-        lineItems: [{
-          price_data: {
-            currency: document.getElementById('currency').value,
-            product_data: {
-              name: document.getElementById('productName').value,
-              description: 'A customizable test product',
-            },
-            unit_amount: parseInt(document.getElementById('productPrice').value),
-          },
-          quantity: parseInt(document.getElementById('productQuantity').value),
-        }],
-        phoneNumberCollection: document.getElementById('phoneCollection').checked,
-        billingAddressCollection: document.getElementById('billingAddressCollection').value,
-        taxIdCollection: document.getElementById('taxIdCollection').checked,
-        adjustableQuantity: document.getElementById('adjustableQuantity').checked,
-        allowPromotionCodes: document.getElementById('promotionCodes').checked,
-        automaticTax: document.getElementById('automaticTax').checked,
-        invoiceCreation: document.getElementById('invoiceCreation').checked,
-        recoveryEnabled: document.getElementById('recoveryEnabled').checked,
-        customFields: customFields,
-        shippingOptions: shippingOptions,
-        metadata: metadata,
-      };
-
-      // Customer email
-      const email = document.getElementById('customerEmail').value.trim();
-      if (email) body.customerEmail = email;
-
-      // Subscription options
-      if (body.mode === 'subscription') {
-        body.lineItems[0].price_data.recurring = { interval: 'month' };
-        const trialDays = parseInt(document.getElementById('trialDays').value);
-        if (trialDays > 0) body.trialPeriodDays = trialDays;
-      }
-
-      // Shipping address
-      if (document.getElementById('shippingCollection').checked) {
-        body.shippingAddressCollection = {
-          allowedCountries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'NL', 'ES', 'IT', 'JP'],
-        };
-      }
-
-      // Payment methods
-      if (pmTypes.length > 0) body.paymentMethodTypes = pmTypes;
-
-      // Session expiration
-      const expiresIn = document.getElementById('expiresIn').value;
-      if (expiresIn) body.expiresInMinutes = parseInt(expiresIn);
-
-      // Selected coupon
-      if (selectedCouponId) {
-        body.discounts = [{ coupon: selectedCouponId }];
-      }
-
-      // Custom text
-      const submitMsg = document.getElementById('submitMessage').value.trim();
-      const termsMsg = document.getElementById('termsMessage').value.trim();
-      const shippingMsg = document.getElementById('shippingMessage').value.trim();
-      if (submitMsg || termsMsg || shippingMsg) {
-        body.customText = {};
-        if (submitMsg) body.customText.submit = { message: submitMsg };
-        if (termsMsg) body.customText.termsOfServiceAcceptance = { message: termsMsg };
-        if (shippingMsg) body.customText.shippingAddress = { message: shippingMsg };
-      }
-
-      // Consent
-      const termsConsent = document.getElementById('termsConsent').checked;
-      const promotionsConsent = document.getElementById('promotionsConsent').checked;
-      if (termsConsent || promotionsConsent) {
-        body.consentCollection = {};
-        if (termsConsent) body.consentCollection.terms_of_service = 'required';
-        if (promotionsConsent) body.consentCollection.promotions = 'auto';
-      }
-
-      try {
-        const response = await fetch('/create-checkout-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        const data = await response.json();
-        if (data.error) {
-          checkoutDiv.innerHTML = `<div class="error"><strong>Error:</strong> ${data.error}</div>`;
-          return;
-        }
-        if (checkout) checkout.destroy();
-        checkout = await stripe.initEmbeddedCheckout({ clientSecret: data.clientSecret });
-        checkoutDiv.innerHTML = '';
-        checkout.mount('#checkout');
-      } catch (error) {
-        checkoutDiv.innerHTML = `<div class="error"><strong>Error:</strong> ${error.message}</div>`;
-      }
-    }
-
-    // Initialize
-    renderCustomFields();
-    renderShippingOptions();
-    renderMetadata();
-  </script>
 </body>
 </html>

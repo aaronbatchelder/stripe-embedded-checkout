@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Form (Elements) | Stripe Checkout Playground</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f6f9fc;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 30px;
+    }
+    .page-header {
+      grid-column: 1 / -1;
+    }
+    .back-link {
+      color: #c62828;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .back-link:hover { text-decoration: underline; }
+    .flavor-badge {
+      display: inline-block;
+      background: #fce4ec;
+      color: #c62828;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .customization-meter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .customization-meter span { font-size: 13px; color: #6b7c93; }
+    .meter-dots {
+      display: flex;
+      gap: 4px;
+    }
+    .meter-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #e6ebf1;
+    }
+    .meter-dot.filled { background: #c62828; }
+    h1 {
+      margin: 0 0 4px 0;
+      color: #32325d;
+    }
+    .subtitle {
+      color: #6b7c93;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Controls sidebar */
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      height: fit-content;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      position: sticky;
+      top: 20px;
+    }
+    .controls h2 {
+      margin-top: 0;
+      color: #32325d;
+      font-size: 16px;
+      border-bottom: 1px solid #e6ebf1;
+      padding-bottom: 10px;
+    }
+    .control-group {
+      margin-bottom: 14px;
+    }
+    .control-group label {
+      display: block;
+      font-weight: 500;
+      color: #32325d;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+    .control-group select,
+    .control-group input[type="text"],
+    .control-group input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #e6ebf1;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #8898aa;
+      margin: 18px 0 8px;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .section-title:first-of-type {
+      margin-top: 0;
+    }
+    button.load-btn {
+      background: #c62828;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 15px;
+    }
+    button.load-btn:hover { background: #b71c1c; }
+    .info-box {
+      background: #fce4ec;
+      color: #880e4f;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+    .info-box strong { display: block; margin-bottom: 4px; }
+    .test-cards {
+      background: #e3f2fd;
+      color: #1565c0;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    /* Theme Presets */
+    .theme-presets {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .theme-btn {
+      padding: 8px;
+      border: 2px solid #e6ebf1;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #32325d;
+      transition: border-color 0.15s;
+      width: auto;
+      margin: 0;
+    }
+    .theme-btn:hover { border-color: #c62828; }
+    .theme-btn.active { border-color: #c62828; background: #fce4ec; }
+
+    /* Color pickers */
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .color-row label {
+      font-size: 12px;
+      color: #525f7f;
+      flex: 1;
+    }
+    .color-row input[type="color"] {
+      width: 32px;
+      height: 32px;
+      border: 1px solid #e6ebf1;
+      border-radius: 4px;
+      padding: 2px;
+      cursor: pointer;
+    }
+
+    /* Main checkout area */
+    .checkout-area {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      border: 2px solid #c62828;
+      overflow: hidden;
+      min-height: 600px;
+    }
+    .checkout-area.theme-dark {
+      background: #1a1a2e;
+    }
+    .checkout-area.theme-minimal {
+      border-color: #e6ebf1;
+      box-shadow: none;
+    }
+    .checkout-area.theme-brand {
+      border-color: #6c5ce7;
+    }
+
+    /* Custom checkout form */
+    .checkout-wrapper {
+      display: none;
+    }
+    .checkout-wrapper.visible {
+      display: block;
+    }
+    .checkout-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      min-height: 600px;
+    }
+
+    /* Order summary panel */
+    .order-summary {
+      padding: 32px;
+      border-right: 1px solid #e6ebf1;
+    }
+    .theme-dark .order-summary {
+      border-right-color: #2d2d4a;
+    }
+    .order-summary .shop-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #6b7c93;
+      margin: 0 0 24px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .theme-dark .order-summary .shop-name { color: #8888aa; }
+    .order-summary .order-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #32325d;
+      margin: 0 0 4px;
+    }
+    .theme-dark .order-summary .order-title { color: #e0e0ff; }
+    .order-summary .order-amount {
+      font-size: 28px;
+      font-weight: 300;
+      color: #6b7c93;
+      margin: 0 0 32px;
+    }
+    .theme-dark .order-summary .order-amount { color: #8888aa; }
+    .line-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid #f0f3f7;
+    }
+    .theme-dark .line-item { border-bottom-color: #2d2d4a; }
+    .line-item-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .line-item-image {
+      width: 48px;
+      height: 48px;
+      background: #f6f9fc;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .theme-dark .line-item-image { background: #2d2d4a; }
+    .line-item-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #32325d;
+    }
+    .theme-dark .line-item-name { color: #e0e0ff; }
+    .line-item-desc {
+      font-size: 12px;
+      color: #8898aa;
+      margin-top: 2px;
+    }
+    .line-item-price {
+      font-size: 14px;
+      font-weight: 500;
+      color: #32325d;
+    }
+    .theme-dark .line-item-price { color: #e0e0ff; }
+    .order-totals {
+      margin-top: 16px;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 14px;
+      color: #6b7c93;
+    }
+    .theme-dark .total-row { color: #8888aa; }
+    .total-row.final {
+      border-top: 2px solid #32325d;
+      margin-top: 8px;
+      padding-top: 12px;
+      font-weight: 600;
+      font-size: 16px;
+      color: #32325d;
+    }
+    .theme-dark .total-row.final { border-top-color: #4a4a6a; color: #e0e0ff; }
+    .customization-callout {
+      margin-top: 32px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .theme-dark .customization-callout {
+      background: #1a2e1a;
+      border-color: #2d4a2d;
+    }
+    .customization-callout h4 {
+      margin: 0 0 6px;
+      font-size: 12px;
+      color: #166534;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .theme-dark .customization-callout h4 { color: #4ade80; }
+    .customization-callout p {
+      margin: 0;
+      font-size: 12px;
+      color: #166534;
+      line-height: 1.5;
+    }
+    .theme-dark .customization-callout p { color: #86efac; }
+
+    /* Payment form panel */
+    .payment-form {
+      padding: 32px;
+    }
+    .form-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #32325d;
+      margin: 0 0 24px;
+    }
+    .theme-dark .form-title { color: #e0e0ff; }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #32325d;
+      margin-bottom: 6px;
+    }
+    .theme-dark .form-group label { color: #c0c0e0; }
+    .form-group input[type="text"],
+    .form-group input[type="email"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e6ebf1;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #635bff;
+      box-shadow: 0 0 0 3px rgba(99,91,255,0.1);
+    }
+    .theme-dark .form-group input {
+      background: #2d2d4a;
+      border-color: #4a4a6a;
+      color: #e0e0ff;
+    }
+    .theme-dark .form-group input:focus {
+      border-color: #818cf8;
+      box-shadow: 0 0 0 3px rgba(129,140,248,0.2);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-divider {
+      height: 1px;
+      background: #e6ebf1;
+      margin: 24px 0;
+    }
+    .theme-dark .form-divider { background: #2d2d4a; }
+    .form-section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #8898aa;
+      margin: 0 0 16px;
+      font-weight: 600;
+    }
+    .theme-dark .form-section-label { color: #6b6b8a; }
+    #payment-element {
+      min-height: 100px;
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 24px;
+      transition: background 0.15s;
+    }
+    .submit-btn.default {
+      background: #635bff;
+      color: white;
+    }
+    .submit-btn.default:hover { background: #5469d4; }
+    .submit-btn.dark {
+      background: #818cf8;
+      color: white;
+    }
+    .submit-btn.dark:hover { background: #6366f1; }
+    .submit-btn.minimal {
+      background: #32325d;
+      color: white;
+    }
+    .submit-btn.minimal:hover { background: #1a1a3e; }
+    .submit-btn.brand {
+      background: #6c5ce7;
+      color: white;
+    }
+    .submit-btn.brand:hover { background: #5b4cdb; }
+    .submit-btn:disabled {
+      background: #9fa8b3;
+      cursor: not-allowed;
+    }
+    .secure-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: #8898aa;
+    }
+    .theme-dark .secure-badge { color: #6b6b8a; }
+    .secure-badge svg {
+      width: 14px;
+      height: 14px;
+      fill: #8898aa;
+    }
+    .theme-dark .secure-badge svg { fill: #6b6b8a; }
+
+    /* Loading / empty state */
+    .loading-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 600px;
+      color: #6b7c93;
+      font-size: 15px;
+    }
+    .error {
+      padding: 16px;
+      color: #cd3d64;
+      background: #ffeef1;
+      border-radius: 4px;
+      margin: 20px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 1000px) {
+      .container { grid-template-columns: 1fr; }
+      .controls { position: static; max-height: none; }
+      .checkout-layout { grid-template-columns: 1fr; }
+      .order-summary { border-right: none; border-bottom: 1px solid #e6ebf1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <a href="/" class="back-link">&larr; Back to Overview</a>
+      <div class="flavor-badge">Embedded Components / Custom Form</div>
+      <div class="customization-meter">
+        <div class="meter-dots">
+          <div class="meter-dot filled"></div>
+          <div class="meter-dot filled"></div>
+          <div class="meter-dot filled"></div>
+          <div class="meter-dot filled"></div>
+          <div class="meter-dot filled"></div>
+        </div>
+        <span>Full customization &mdash; You design every aspect of the checkout form</span>
+      </div>
+      <h1>Custom Payment Form (Elements)</h1>
+      <p class="subtitle">This form is built with Stripe's PaymentElement. The entire layout, styling, and flow is custom code &mdash; try switching themes to see how designers have full control.</p>
+    </div>
+
+    <div class="controls">
+      <h2>Design Controls</h2>
+
+      <div class="section-title">Theme Presets</div>
+      <p style="font-size:12px;color:#6b7c93;margin:0 0 8px;">Switch themes to see how the same form can look completely different</p>
+      <div class="theme-presets">
+        <button class="theme-btn active" onclick="setTheme('default')" id="theme-default">Default</button>
+        <button class="theme-btn" onclick="setTheme('dark')" id="theme-dark">Dark Mode</button>
+        <button class="theme-btn" onclick="setTheme('minimal')" id="theme-minimal">Minimal</button>
+        <button class="theme-btn" onclick="setTheme('brand')" id="theme-brand">Branded</button>
+      </div>
+
+      <div class="section-title">Product</div>
+      <div class="control-group">
+        <label for="productName">Product Name</label>
+        <input type="text" id="productName" value="Pro Annual Plan">
+      </div>
+      <div class="control-group">
+        <label for="productPrice">Price (cents)</label>
+        <input type="number" id="productPrice" value="9900">
+      </div>
+      <div class="control-group">
+        <label for="currency">Currency</label>
+        <select id="currency">
+          <option value="usd">USD</option>
+          <option value="eur">EUR</option>
+          <option value="gbp">GBP</option>
+          <option value="cad">CAD</option>
+          <option value="aud">AUD</option>
+          <option value="jpy">JPY</option>
+        </select>
+      </div>
+
+      <div class="section-title">Layout</div>
+      <div class="control-group">
+        <label for="layout">Form Layout</label>
+        <select id="layout">
+          <option value="tabs">Tabs (default)</option>
+          <option value="accordion">Accordion</option>
+        </select>
+      </div>
+
+      <button class="load-btn" onclick="loadPaymentForm()">Load Payment Form</button>
+
+      <div class="info-box">
+        <strong>This is all YOUR code</strong>
+        Unlike Hosted or Embedded Checkout, every part of this page is custom HTML/CSS. The only Stripe-rendered element is the PaymentElement (card fields). You control layout, content, styling, form fields, validation, and the submit button.
+      </div>
+
+      <div class="test-cards">
+        <strong>Test Cards:</strong><br>
+        Success: 4242 4242 4242 4242<br>
+        Decline: 4000 0000 0000 0002<br>
+        3D Secure: 4000 0027 6000 3184<br>
+        <br>Exp: Any future | CVC: Any 3 digits
+      </div>
+    </div>
+
+    <div class="checkout-area" id="checkoutArea">
+      <!-- Loading state -->
+      <div class="loading-state" id="loadingState">
+        Click "Load Payment Form" to initialize the custom checkout
+      </div>
+
+      <!-- Custom checkout form -->
+      <div class="checkout-wrapper" id="checkoutWrapper">
+        <div class="checkout-layout">
+          <!-- Left: Order Summary (YOUR custom HTML) -->
+          <div class="order-summary">
+            <p class="shop-name">Your Company</p>
+            <h2 class="order-title" id="displayProductName">Pro Annual Plan</h2>
+            <p class="order-amount" id="displayAmount">$99.00</p>
+
+            <div class="line-item">
+              <div class="line-item-info">
+                <div class="line-item-image">&#9733;</div>
+                <div>
+                  <div class="line-item-name" id="lineItemName">Pro Annual Plan</div>
+                  <div class="line-item-desc">Qty 1</div>
+                </div>
+              </div>
+              <div class="line-item-price" id="lineItemPrice">$99.00</div>
+            </div>
+
+            <div class="order-totals">
+              <div class="total-row">
+                <span>Subtotal</span>
+                <span id="subtotal">$99.00</span>
+              </div>
+              <div class="total-row">
+                <span>Tax</span>
+                <span>$0.00</span>
+              </div>
+              <div class="total-row final">
+                <span>Total</span>
+                <span id="total">$99.00</span>
+              </div>
+            </div>
+
+            <div class="customization-callout">
+              <h4>Full design control</h4>
+              <p>This entire panel is custom HTML/CSS. You can add any content here &mdash; product images, feature lists, testimonials, trust badges, upsells, or anything your design requires.</p>
+            </div>
+          </div>
+
+          <!-- Right: Payment Form (mix of YOUR HTML + Stripe Elements) -->
+          <div class="payment-form" id="paymentForm">
+            <h3 class="form-title">Payment details</h3>
+
+            <!-- YOUR custom form fields -->
+            <div class="form-group">
+              <label for="email">Email address</label>
+              <input type="email" id="email" placeholder="you@company.com">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="firstName">First name</label>
+                <input type="text" id="firstName" placeholder="Jane">
+              </div>
+              <div class="form-group">
+                <label for="lastName">Last name</label>
+                <input type="text" id="lastName" placeholder="Smith">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="company">Company (optional)</label>
+              <input type="text" id="company" placeholder="Acme Inc.">
+            </div>
+
+            <div class="form-divider"></div>
+            <p class="form-section-label">Payment method</p>
+
+            <!-- Stripe PaymentElement renders here -->
+            <div id="payment-element"></div>
+            <div id="payment-message" class="error" style="display:none;margin:12px 0 0;"></div>
+
+            <button class="submit-btn default" id="submitBtn" type="button" onclick="handleSubmit()" disabled>
+              Pay $99.00
+            </button>
+
+            <div class="secure-badge">
+              <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+              Payments secured by Stripe
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let stripe = null;
+    let elements = null;
+    let paymentElement = null;
+    let currentTheme = 'default';
+
+    const themes = {
+      default: {
+        variables: {
+          colorPrimary: '#635bff',
+          colorBackground: '#ffffff',
+          colorText: '#32325d',
+          colorDanger: '#df1b41',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          borderRadius: '6px',
+        },
+      },
+      dark: {
+        variables: {
+          colorPrimary: '#818cf8',
+          colorBackground: '#2d2d4a',
+          colorText: '#e0e0ff',
+          colorDanger: '#f87171',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          borderRadius: '6px',
+        },
+        rules: {
+          '.Input': {
+            backgroundColor: '#1a1a2e',
+            borderColor: '#4a4a6a',
+            color: '#e0e0ff',
+          },
+          '.Input:focus': {
+            borderColor: '#818cf8',
+            boxShadow: '0 0 0 3px rgba(129,140,248,0.2)',
+          },
+          '.Label': {
+            color: '#c0c0e0',
+          },
+          '.Tab': {
+            backgroundColor: '#1a1a2e',
+            borderColor: '#4a4a6a',
+            color: '#c0c0e0',
+          },
+          '.Tab--selected': {
+            backgroundColor: '#2d2d4a',
+            borderColor: '#818cf8',
+            color: '#e0e0ff',
+          },
+        },
+      },
+      minimal: {
+        variables: {
+          colorPrimary: '#32325d',
+          colorBackground: '#ffffff',
+          colorText: '#32325d',
+          colorDanger: '#df1b41',
+          fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+          borderRadius: '2px',
+          spacingUnit: '4px',
+        },
+        rules: {
+          '.Input': {
+            borderColor: '#d4d4d8',
+            boxShadow: 'none',
+          },
+          '.Tab': {
+            borderColor: '#d4d4d8',
+            boxShadow: 'none',
+          },
+        },
+      },
+      brand: {
+        variables: {
+          colorPrimary: '#6c5ce7',
+          colorBackground: '#faf5ff',
+          colorText: '#2d1b69',
+          colorDanger: '#e74c3c',
+          fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+          borderRadius: '12px',
+        },
+        rules: {
+          '.Input': {
+            borderColor: '#ddd6fe',
+            backgroundColor: '#ffffff',
+          },
+          '.Input:focus': {
+            borderColor: '#6c5ce7',
+            boxShadow: '0 0 0 3px rgba(108,92,231,0.15)',
+          },
+          '.Tab': {
+            borderColor: '#ddd6fe',
+          },
+          '.Tab--selected': {
+            borderColor: '#6c5ce7',
+            backgroundColor: '#ede9fe',
+          },
+        },
+      },
+    };
+
+    async function initStripe() {
+      const res = await fetch('/config');
+      const { publishableKey } = await res.json();
+      stripe = Stripe(publishableKey);
+    }
+    initStripe();
+
+    function setTheme(name) {
+      currentTheme = name;
+      document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('theme-' + name).classList.add('active');
+
+      const area = document.getElementById('checkoutArea');
+      area.classList.remove('theme-dark', 'theme-minimal', 'theme-brand');
+      if (name !== 'default') area.classList.add('theme-' + name);
+
+      // Update submit button style
+      const btn = document.getElementById('submitBtn');
+      btn.className = 'submit-btn ' + name;
+
+      // Update custom input styles
+      const inputs = document.querySelectorAll('.payment-form input');
+      inputs.forEach(input => {
+        if (name === 'dark') {
+          input.style.background = '#2d2d4a';
+          input.style.borderColor = '#4a4a6a';
+          input.style.color = '#e0e0ff';
+        } else if (name === 'brand') {
+          input.style.background = '#ffffff';
+          input.style.borderColor = '#ddd6fe';
+          input.style.color = '#2d1b69';
+        } else {
+          input.style.background = '';
+          input.style.borderColor = '';
+          input.style.color = '';
+        }
+      });
+
+      // Reload payment form if already loaded to apply theme to PaymentElement
+      if (elements) {
+        loadPaymentForm();
+      }
+    }
+
+    function formatAmount(cents, currency) {
+      const amt = (cents / 100).toFixed(2);
+      const symbols = { usd: '$', eur: '\u20AC', gbp: '\u00A3', cad: 'CA$', aud: 'A$', jpy: '\u00A5' };
+      return (symbols[currency] || '$') + amt;
+    }
+
+    async function loadPaymentForm() {
+      const productName = document.getElementById('productName').value;
+      const productPrice = parseInt(document.getElementById('productPrice').value) || 2000;
+      const currency = document.getElementById('currency').value;
+      const layout = document.getElementById('layout').value;
+      const formatted = formatAmount(productPrice, currency);
+
+      // Update display
+      document.getElementById('displayProductName').textContent = productName;
+      document.getElementById('displayAmount').textContent = formatted;
+      document.getElementById('lineItemName').textContent = productName;
+      document.getElementById('lineItemPrice').textContent = formatted;
+      document.getElementById('subtotal').textContent = formatted;
+      document.getElementById('total').textContent = formatted;
+      document.getElementById('submitBtn').textContent = 'Pay ' + formatted;
+
+      // Show form
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('checkoutWrapper').classList.add('visible');
+
+      // Apply current theme styles to form inputs
+      setTheme(currentTheme);
+
+      try {
+        const res = await fetch('/create-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: productPrice,
+            currency: currency,
+            productName: productName,
+          }),
+        });
+        const data = await res.json();
+        if (data.error) {
+          document.getElementById('payment-message').textContent = data.error;
+          document.getElementById('payment-message').style.display = 'block';
+          return;
+        }
+
+        // Create Elements with theme
+        const appearance = themes[currentTheme] || themes.default;
+        elements = stripe.elements({
+          clientSecret: data.clientSecret,
+          appearance: appearance,
+        });
+
+        // Clear existing PaymentElement if any
+        document.getElementById('payment-element').innerHTML = '';
+
+        paymentElement = elements.create('payment', {
+          layout: layout,
+        });
+        paymentElement.mount('#payment-element');
+
+        paymentElement.on('ready', () => {
+          document.getElementById('submitBtn').disabled = false;
+        });
+
+        document.getElementById('payment-message').style.display = 'none';
+      } catch (error) {
+        document.getElementById('payment-message').textContent = error.message;
+        document.getElementById('payment-message').style.display = 'block';
+      }
+    }
+
+    async function handleSubmit() {
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin + '/return?source=custom',
+          receipt_email: document.getElementById('email').value || undefined,
+        },
+      });
+
+      if (error) {
+        document.getElementById('payment-message').textContent = error.message;
+        document.getElementById('payment-message').style.display = 'block';
+        btn.disabled = false;
+        const price = parseInt(document.getElementById('productPrice').value) || 2000;
+        const currency = document.getElementById('currency').value;
+        btn.textContent = 'Pay ' + formatAmount(price, currency);
+      }
+    }
+  </script>
+</body>
+</html>

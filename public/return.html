@@ -108,25 +108,33 @@
     async function checkStatus() {
       const params = new URLSearchParams(window.location.search);
       const sessionId = params.get('session_id');
+      const paymentIntentId = params.get('payment_intent');
+      const redirectStatus = params.get('redirect_status');
 
-      if (!sessionId) {
+      if (!sessionId && !paymentIntentId) {
         document.getElementById('content').innerHTML = `
           <h1>No Session Found</h1>
-          <p>No checkout session ID was provided.</p>
+          <p>No checkout session or payment intent ID was provided.</p>
           <a href="/">Try Again</a>
         `;
         return;
       }
 
       try {
-        const response = await fetch(`/session-status?session_id=${sessionId}`);
-        const data = await response.json();
+        let response, data;
+        if (paymentIntentId) {
+          response = await fetch(`/payment-status?payment_intent=${paymentIntentId}`);
+          data = await response.json();
+        } else {
+          response = await fetch(`/session-status?session_id=${sessionId}`);
+          data = await response.json();
+        }
 
         if (data.error) {
           throw new Error(data.error);
         }
 
-        const amount = (data.amount_total / 100).toFixed(2);
+        const amount = ((data.amount_total || data.amount) / 100).toFixed(2);
         const currency = data.currency.toUpperCase();
 
         if (data.status === 'complete') {

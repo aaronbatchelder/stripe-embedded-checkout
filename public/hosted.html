@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hosted Checkout | Stripe Checkout Playground</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f6f9fc;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 30px;
+    }
+    .page-header {
+      grid-column: 1 / -1;
+    }
+    .back-link {
+      color: #2e7d32;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .back-link:hover { text-decoration: underline; }
+    .flavor-badge {
+      display: inline-block;
+      background: #e8f5e9;
+      color: #2e7d32;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .customization-meter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .customization-meter span { font-size: 13px; color: #6b7c93; }
+    .meter-dots {
+      display: flex;
+      gap: 4px;
+    }
+    .meter-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #e6ebf1;
+    }
+    .meter-dot.filled { background: #2e7d32; }
+    h1 {
+      margin: 0 0 4px 0;
+      color: #32325d;
+    }
+    .subtitle {
+      color: #6b7c93;
+      margin: 0;
+      line-height: 1.5;
+    }
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      height: fit-content;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      position: sticky;
+      top: 20px;
+    }
+    .controls h2 {
+      margin-top: 0;
+      color: #32325d;
+      font-size: 16px;
+      border-bottom: 1px solid #e6ebf1;
+      padding-bottom: 10px;
+    }
+    .control-group {
+      margin-bottom: 12px;
+    }
+    .control-group label {
+      display: block;
+      font-weight: 500;
+      color: #32325d;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+    .control-group select,
+    .control-group input[type="text"],
+    .control-group input[type="number"],
+    .control-group input[type="email"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #e6ebf1;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .control-group input[type="checkbox"] {
+      margin-right: 8px;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      font-weight: normal !important;
+      cursor: pointer;
+    }
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #8898aa;
+      margin: 18px 0 8px;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .section-title:first-of-type {
+      margin-top: 0;
+    }
+    button {
+      background: #2e7d32;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 15px;
+    }
+    button:hover { background: #1b5e20; }
+    button:disabled { background: #9fa8b3; cursor: not-allowed; }
+    button.secondary { background: #e6ebf1; color: #32325d; margin-top: 8px; }
+    button.secondary:hover { background: #d4dbe3; }
+    button.small { padding: 6px 12px; font-size: 12px; width: auto; margin: 0; }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .three-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .collapsible {
+      cursor: pointer;
+      user-select: none;
+    }
+    .collapsible::after {
+      content: ' +';
+      float: right;
+    }
+    .collapsible.active::after {
+      content: ' -';
+    }
+    .collapsible-content {
+      display: none;
+    }
+    .collapsible-content.show {
+      display: block;
+    }
+    .info-box {
+      background: #e3f2fd;
+      color: #1565c0;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .warning-box {
+      background: #fff3e0;
+      color: #e65100;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .custom-field-builder, .shipping-builder, .metadata-builder {
+      background: #f6f9fc;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+    .item-row {
+      background: white;
+      padding: 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .item-row button {
+      background: #cd3d64;
+      padding: 4px 8px;
+      font-size: 11px;
+      width: auto;
+      margin: 0;
+    }
+    .add-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 5px;
+      margin-top: 8px;
+    }
+    .add-row.four-col {
+      grid-template-columns: 1fr 1fr 1fr auto;
+    }
+    .add-row input, .add-row select {
+      padding: 6px;
+      font-size: 12px;
+    }
+    .add-row button {
+      padding: 6px 10px;
+      margin: 0;
+    }
+    .payment-methods {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      background: #f6f9fc;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+    .payment-methods label {
+      font-size: 12px;
+      font-weight: normal;
+    }
+    .coupon-list {
+      background: #f6f9fc;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 8px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .coupon-item {
+      background: white;
+      padding: 8px;
+      border-radius: 4px;
+      margin-bottom: 5px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .coupon-item:hover { background: #e3f2fd; }
+    .coupon-item.selected { background: #c8e6c9; border: 1px solid #4caf50; }
+
+    /* Preview area */
+    .preview-area {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      border: 2px solid #2e7d32;
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+    }
+    .preview-header {
+      padding: 24px;
+      border-bottom: 1px solid #e6ebf1;
+    }
+    .preview-header h2 {
+      margin: 0 0 8px;
+      color: #32325d;
+      font-size: 18px;
+    }
+    .preview-header p {
+      margin: 0;
+      color: #6b7c93;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .preview-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+    .redirect-card {
+      text-align: center;
+      max-width: 420px;
+    }
+    .redirect-icon {
+      width: 80px;
+      height: 80px;
+      background: #e8f5e9;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .redirect-icon svg {
+      width: 36px;
+      height: 36px;
+      fill: #2e7d32;
+    }
+    .redirect-card h3 {
+      margin: 0 0 12px;
+      color: #32325d;
+      font-size: 20px;
+    }
+    .redirect-card p {
+      margin: 0 0 24px;
+      color: #6b7c93;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .redirect-btn {
+      display: inline-block;
+      background: #2e7d32;
+      color: white;
+      padding: 14px 32px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      width: auto;
+      margin: 0;
+      transition: background 0.15s;
+    }
+    .redirect-btn:hover { background: #1b5e20; }
+    .redirect-btn:disabled { background: #9fa8b3; }
+    .error {
+      padding: 20px;
+      color: #cd3d64;
+      background: #ffeef1;
+      border-radius: 4px;
+      margin: 20px;
+      text-align: left;
+    }
+    .limitation-callout {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 24px;
+    }
+    .limitation-callout h4 {
+      margin: 0 0 8px;
+      color: #e65100;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .limitation-callout ul {
+      margin: 0;
+      padding-left: 18px;
+      color: #795548;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+      .controls { position: static; max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <a href="/" class="back-link">&larr; Back to Overview</a>
+      <div class="flavor-badge">Stripe-hosted Checkout</div>
+      <div class="customization-meter">
+        <div class="meter-dots">
+          <div class="meter-dot filled"></div>
+          <div class="meter-dot"></div>
+          <div class="meter-dot"></div>
+          <div class="meter-dot"></div>
+          <div class="meter-dot"></div>
+        </div>
+        <span>Low customization &mdash; Stripe controls the entire checkout page</span>
+      </div>
+      <h1>Stripe-hosted Checkout</h1>
+      <p class="subtitle">Configure your options below, then click "Go to Stripe Checkout" to be redirected to the Stripe-hosted payment page. You'll leave your site entirely.</p>
+    </div>
+
+    <div class="controls">
+      <h2>Session Options</h2>
+
+      <!-- MODE & PRODUCT -->
+      <div class="section-title">Mode & Product</div>
+      <div class="two-col">
+        <div class="control-group">
+          <label for="mode">Payment Mode</label>
+          <select id="mode" onchange="toggleSubscriptionOptions()">
+            <option value="payment">One-time Payment</option>
+            <option value="subscription">Subscription</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="submitType">Button Type</label>
+          <select id="submitType">
+            <option value="auto">Auto</option>
+            <option value="pay">Pay</option>
+            <option value="book">Book</option>
+            <option value="donate">Donate</option>
+          </select>
+        </div>
+      </div>
+      <div class="control-group">
+        <label for="productName">Product Name</label>
+        <input type="text" id="productName" value="Sample Product">
+      </div>
+      <div class="three-col">
+        <div class="control-group">
+          <label for="productPrice">Price (cents)</label>
+          <input type="number" id="productPrice" value="2000">
+        </div>
+        <div class="control-group">
+          <label for="productQuantity">Quantity</label>
+          <input type="number" id="productQuantity" value="1" min="1">
+        </div>
+        <div class="control-group">
+          <label for="currency">Currency</label>
+          <select id="currency">
+            <option value="usd">USD</option>
+            <option value="eur">EUR</option>
+            <option value="gbp">GBP</option>
+            <option value="cad">CAD</option>
+            <option value="aud">AUD</option>
+            <option value="jpy">JPY</option>
+          </select>
+        </div>
+      </div>
+      <div class="control-group">
+        <label for="locale">Language / Locale</label>
+        <select id="locale">
+          <option value="auto">Auto-detect</option>
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="it">Italian</option>
+          <option value="ja">Japanese</option>
+          <option value="zh">Chinese</option>
+          <option value="pt">Portuguese</option>
+          <option value="nl">Dutch</option>
+          <option value="pl">Polish</option>
+          <option value="ru">Russian</option>
+        </select>
+      </div>
+
+      <!-- SUBSCRIPTION OPTIONS -->
+      <div id="subscriptionOptions" style="display:none;">
+        <div class="section-title">Subscription Options</div>
+        <div class="control-group">
+          <label for="trialDays">Free Trial (days)</label>
+          <input type="number" id="trialDays" placeholder="e.g., 14" min="1" max="730">
+        </div>
+      </div>
+
+      <!-- CUSTOMER & PREFILL -->
+      <div class="section-title">Customer & Prefill</div>
+      <div class="control-group">
+        <label for="customerEmail">Prefill Email (optional)</label>
+        <input type="email" id="customerEmail" placeholder="customer@example.com">
+      </div>
+      <div class="control-group">
+        <label for="customerCreation">Customer Creation</label>
+        <select id="customerCreation">
+          <option value="if_required">If Required</option>
+          <option value="always">Always Create</option>
+        </select>
+      </div>
+
+      <!-- DATA COLLECTION -->
+      <div class="section-title">Data Collection</div>
+      <div class="control-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="phoneCollection">
+          Collect Phone Number
+        </label>
+      </div>
+      <div class="control-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="shippingCollection">
+          Collect Shipping Address
+        </label>
+      </div>
+      <div class="control-group">
+        <label for="billingAddressCollection">Billing Address</label>
+        <select id="billingAddressCollection">
+          <option value="auto">Auto (only when needed)</option>
+          <option value="required">Always Required</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="taxIdCollection">
+          Collect Tax ID (VAT, etc.)
+        </label>
+      </div>
+      <div class="control-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="adjustableQuantity">
+          Allow Quantity Adjustment
+        </label>
+      </div>
+      <div class="control-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="promotionCodes">
+          Allow Promotion Codes
+        </label>
+      </div>
+
+      <!-- SHIPPING OPTIONS -->
+      <div class="section-title collapsible" onclick="toggleSection(this)">Shipping Rates</div>
+      <div class="collapsible-content">
+        <p style="font-size:12px;color:#6b7c93;margin:8px 0;">Define shipping options customers can choose from</p>
+        <div class="shipping-builder">
+          <div id="shippingList"></div>
+          <div class="add-row four-col">
+            <input type="text" id="shippingName" placeholder="Name">
+            <input type="number" id="shippingPrice" placeholder="Price (cents)">
+            <input type="text" id="shippingDays" placeholder="Days (e.g., 3-5)">
+            <button onclick="addShippingOption()">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DISCOUNTS -->
+      <div class="section-title collapsible" onclick="toggleSection(this)">Discounts / Coupons</div>
+      <div class="collapsible-content">
+        <p style="font-size:12px;color:#6b7c93;margin:8px 0;">Pre-apply a discount to the checkout</p>
+        <button class="small secondary" onclick="loadCoupons()">Load Coupons</button>
+        <button class="small secondary" onclick="createTestCoupon()">Create Test Coupon</button>
+        <div class="coupon-list" id="couponList">
+          <p style="color:#6b7c93;margin:0;">Click "Load Coupons" to see available coupons</p>
+        </div>
+      </div>
+
+      <!-- PAYMENT METHODS -->
+      <div class="section-title collapsible" onclick="toggleSection(this)">Payment Methods</div>
+      <div class="collapsible-content">
+        <p style="font-size:12px;color:#6b7c93;margin:8px 0;">Leave all unchecked for Stripe defaults</p>
+        <div class="payment-methods">
+          <label class="checkbox-label"><input type="checkbox" value="card" class="pmType"> Card</label>
+          <label class="checkbox-label"><input type="checkbox" value="us_bank_account" class="pmType"> ACH</label>
+          <label class="checkbox-label"><input type="checkbox" value="link" class="pmType"> Link</label>
+          <label class="checkbox-label"><input type="checkbox" value="affirm" class="pmType"> Affirm</label>
+          <label class="checkbox-label"><input type="checkbox" value="afterpay_clearpay" class="pmType"> Afterpay</label>
+          <label class="checkbox-label"><input type="checkbox" value="klarna" class="pmType"> Klarna</label>
+          <label class="checkbox-label"><input type="checkbox" value="cashapp" class="pmType"> Cash App</label>
+          <label class="checkbox-label"><input type="checkbox" value="paypal" class="pmType"> PayPal</label>
+        </div>
+      </div>
+
+      <!-- CUSTOM FIELDS -->
+      <div class="section-title collapsible" onclick="toggleSection(this)">Custom Fields (max 3)</div>
+      <div class="collapsible-content">
+        <div class="custom-field-builder">
+          <div id="customFieldsList"></div>
+          <div class="add-row">
+            <input type="text" id="newFieldLabel" placeholder="Label">
+            <select id="newFieldType">
+              <option value="text">Text</option>
+              <option value="dropdown">Dropdown</option>
+              <option value="numeric">Numeric</option>
+            </select>
+            <button onclick="addCustomField()">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CUSTOM MESSAGES -->
+      <div class="section-title collapsible" onclick="toggleSection(this)">Custom Messages</div>
+      <div class="collapsible-content">
+        <div class="control-group">
+          <label for="submitMessage">Submit Button Message</label>
+          <input type="text" id="submitMessage" placeholder="e.g., Your order ships in 2 days">
+        </div>
+        <div class="control-group">
+          <label for="termsMessage">Terms of Service Text</label>
+          <input type="text" id="termsMessage" placeholder="e.g., I agree to the terms">
+        </div>
+        <div class="control-group">
+          <label for="shippingMessage">Shipping Info Message</label>
+          <input type="text" id="shippingMessage" placeholder="e.g., Free shipping over $50">
+        </div>
+      </div>
+
+      <!-- CONSENT -->
+      <div class="section-title collapsible" onclick="toggleSection(this)">Consent & Terms</div>
+      <div class="collapsible-content">
+        <div class="control-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="termsConsent">
+            Require Terms Acceptance
+          </label>
+        </div>
+        <div class="control-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="promotionsConsent">
+            Marketing Opt-in
+          </label>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <strong>Test Cards:</strong><br>
+        Success: 4242 4242 4242 4242<br>
+        Decline: 4000 0000 0000 0002<br>
+        3D Secure: 4000 0027 6000 3184<br>
+        <br>Exp: Any future | CVC: Any 3 digits
+      </div>
+    </div>
+
+    <div class="preview-area">
+      <div class="preview-header">
+        <h2>Stripe-hosted Payment Page</h2>
+        <p>Clicking "Go to Stripe Checkout" will redirect you to <strong>checkout.stripe.com</strong>. The entire payment page is rendered and controlled by Stripe. You return to your site after completion.</p>
+      </div>
+      <div class="limitation-callout">
+        <h4>What designers cannot change on this page</h4>
+        <ul>
+          <li>Page layout, spacing, or structure</li>
+          <li>Font family, sizes, or weights</li>
+          <li>Field ordering, grouping, or arrangement</li>
+          <li>Background color or gradient (beyond brand settings)</li>
+          <li>Custom HTML, CSS, or JavaScript</li>
+          <li>Header, footer, or navigation</li>
+          <li>Loading states or animations</li>
+          <li>Mobile-specific layout adjustments</li>
+        </ul>
+      </div>
+      <div class="preview-body">
+        <div class="redirect-card" id="redirectArea">
+          <div class="redirect-icon">
+            <svg viewBox="0 0 24 24"><path d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7zm-2 16H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7H5z"/></svg>
+          </div>
+          <h3>Ready to redirect</h3>
+          <p>Configure your checkout options in the sidebar, then click the button below. You'll be taken to Stripe's hosted checkout page to complete payment.</p>
+          <button class="redirect-btn" onclick="goToCheckout()">Go to Stripe Checkout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let customFields = [];
+    let shippingOptions = [];
+    let coupons = [];
+    let selectedCouponId = null;
+
+    function toggleSection(el) {
+      el.classList.toggle('active');
+      el.nextElementSibling.classList.toggle('show');
+    }
+
+    function toggleSubscriptionOptions() {
+      const mode = document.getElementById('mode').value;
+      document.getElementById('subscriptionOptions').style.display = mode === 'subscription' ? 'block' : 'none';
+    }
+
+    // Custom Fields
+    function addCustomField() {
+      if (customFields.length >= 3) { alert('Maximum 3 custom fields allowed'); return; }
+      const label = document.getElementById('newFieldLabel').value.trim();
+      const type = document.getElementById('newFieldType').value;
+      if (!label) return alert('Please enter a label');
+      const field = {
+        key: label.toLowerCase().replace(/\s+/g, '_'),
+        label: { type: 'custom', custom: label },
+        type: type,
+      };
+      if (type === 'dropdown') {
+        field.dropdown = { options: [
+          { label: 'Option 1', value: 'opt1' },
+          { label: 'Option 2', value: 'opt2' },
+          { label: 'Option 3', value: 'opt3' },
+        ]};
+      }
+      customFields.push(field);
+      renderCustomFields();
+      document.getElementById('newFieldLabel').value = '';
+    }
+    function removeCustomField(index) { customFields.splice(index, 1); renderCustomFields(); }
+    function renderCustomFields() {
+      document.getElementById('customFieldsList').innerHTML = customFields.map((f, i) => `
+        <div class="item-row"><span>${f.label.custom} (${f.type})</span><button onclick="removeCustomField(${i})">X</button></div>
+      `).join('');
+    }
+
+    // Shipping Options
+    function addShippingOption() {
+      const name = document.getElementById('shippingName').value.trim();
+      const price = parseInt(document.getElementById('shippingPrice').value) || 0;
+      const days = document.getElementById('shippingDays').value.trim();
+      if (!name) return alert('Please enter a shipping name');
+      shippingOptions.push({
+        shipping_rate_data: {
+          type: 'fixed_amount',
+          fixed_amount: { amount: price, currency: document.getElementById('currency').value },
+          display_name: name,
+          delivery_estimate: days ? {
+            minimum: { unit: 'business_day', value: parseInt(days.split('-')[0]) || 1 },
+            maximum: { unit: 'business_day', value: parseInt(days.split('-')[1]) || parseInt(days.split('-')[0]) || 5 },
+          } : undefined,
+        },
+      });
+      renderShippingOptions();
+      document.getElementById('shippingName').value = '';
+      document.getElementById('shippingPrice').value = '';
+      document.getElementById('shippingDays').value = '';
+    }
+    function removeShippingOption(index) { shippingOptions.splice(index, 1); renderShippingOptions(); }
+    function renderShippingOptions() {
+      document.getElementById('shippingList').innerHTML = shippingOptions.map((opt, i) => `
+        <div class="item-row"><span>${opt.shipping_rate_data.display_name} - $${(opt.shipping_rate_data.fixed_amount.amount / 100).toFixed(2)}</span><button onclick="removeShippingOption(${i})">X</button></div>
+      `).join('');
+    }
+
+    // Coupons
+    async function loadCoupons() {
+      try {
+        const res = await fetch('/coupons');
+        coupons = await res.json();
+        renderCoupons();
+      } catch (e) { alert('Error loading coupons: ' + e.message); }
+    }
+    async function createTestCoupon() {
+      try {
+        const res = await fetch('/create-test-coupon', { method: 'POST' });
+        const coupon = await res.json();
+        if (coupon.error) throw new Error(coupon.error);
+        alert('Created coupon: ' + coupon.name);
+        loadCoupons();
+      } catch (e) { alert('Error creating coupon: ' + e.message); }
+    }
+    function selectCoupon(id) {
+      selectedCouponId = selectedCouponId === id ? null : id;
+      renderCoupons();
+    }
+    function renderCoupons() {
+      if (coupons.length === 0) {
+        document.getElementById('couponList').innerHTML = '<p style="color:#6b7c93;margin:0;">No coupons found.</p>';
+        return;
+      }
+      document.getElementById('couponList').innerHTML = coupons.map(c => `
+        <div class="coupon-item ${selectedCouponId === c.id ? 'selected' : ''}" onclick="selectCoupon('${c.id}')">
+          <span>${c.name || c.id} - ${c.percent_off ? c.percent_off + '%' : '$' + (c.amount_off / 100)} off</span>
+          ${selectedCouponId === c.id ? '<span>&#10003;</span>' : ''}
+        </div>
+      `).join('');
+    }
+
+    async function goToCheckout() {
+      const btn = document.querySelector('.redirect-btn');
+      btn.disabled = true;
+      btn.textContent = 'Creating session...';
+
+      const pmTypes = [];
+      document.querySelectorAll('.pmType:checked').forEach(cb => pmTypes.push(cb.value));
+
+      const body = {
+        uiMode: 'hosted',
+        mode: document.getElementById('mode').value,
+        submitType: document.getElementById('submitType').value,
+        currency: document.getElementById('currency').value,
+        locale: document.getElementById('locale').value,
+        customerCreation: document.getElementById('customerCreation').value,
+        lineItems: [{
+          price_data: {
+            currency: document.getElementById('currency').value,
+            product_data: {
+              name: document.getElementById('productName').value,
+              description: 'A customizable test product',
+            },
+            unit_amount: parseInt(document.getElementById('productPrice').value),
+          },
+          quantity: parseInt(document.getElementById('productQuantity').value),
+        }],
+        phoneNumberCollection: document.getElementById('phoneCollection').checked,
+        billingAddressCollection: document.getElementById('billingAddressCollection').value,
+        taxIdCollection: document.getElementById('taxIdCollection').checked,
+        adjustableQuantity: document.getElementById('adjustableQuantity').checked,
+        allowPromotionCodes: document.getElementById('promotionCodes').checked,
+        customFields: customFields,
+        shippingOptions: shippingOptions,
+      };
+
+      const email = document.getElementById('customerEmail').value.trim();
+      if (email) body.customerEmail = email;
+
+      if (body.mode === 'subscription') {
+        body.lineItems[0].price_data.recurring = { interval: 'month' };
+        const trialDays = parseInt(document.getElementById('trialDays').value);
+        if (trialDays > 0) body.trialPeriodDays = trialDays;
+      }
+
+      if (document.getElementById('shippingCollection').checked) {
+        body.shippingAddressCollection = {
+          allowedCountries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'NL', 'ES', 'IT', 'JP'],
+        };
+      }
+
+      if (pmTypes.length > 0) body.paymentMethodTypes = pmTypes;
+      if (selectedCouponId) body.discounts = [{ coupon: selectedCouponId }];
+
+      const submitMsg = document.getElementById('submitMessage').value.trim();
+      const termsMsg = document.getElementById('termsMessage').value.trim();
+      const shippingMsg = document.getElementById('shippingMessage').value.trim();
+      if (submitMsg || termsMsg || shippingMsg) {
+        body.customText = {};
+        if (submitMsg) body.customText.submit = { message: submitMsg };
+        if (termsMsg) body.customText.termsOfServiceAcceptance = { message: termsMsg };
+        if (shippingMsg) body.customText.shippingAddress = { message: shippingMsg };
+      }
+
+      const termsConsent = document.getElementById('termsConsent').checked;
+      const promotionsConsent = document.getElementById('promotionsConsent').checked;
+      if (termsConsent || promotionsConsent) {
+        body.consentCollection = {};
+        if (termsConsent) body.consentCollection.terms_of_service = 'required';
+        if (promotionsConsent) body.consentCollection.promotions = 'auto';
+      }
+
+      try {
+        const response = await fetch('/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await response.json();
+        if (data.error) {
+          document.getElementById('redirectArea').innerHTML = `<div class="error"><strong>Error:</strong> ${data.error}</div>
+            <button class="redirect-btn" onclick="location.reload()" style="margin-top:16px;">Try Again</button>`;
+          return;
+        }
+        // Redirect to Stripe-hosted checkout
+        window.location.href = data.url;
+      } catch (error) {
+        document.getElementById('redirectArea').innerHTML = `<div class="error"><strong>Error:</strong> ${error.message}</div>
+          <button class="redirect-btn" onclick="location.reload()" style="margin-top:16px;">Try Again</button>`;
+      }
+    }
+
+    renderCustomFields();
+    renderShippingOptions();
+  </script>
+</body>
+</html>

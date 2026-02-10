@@ -74,11 +74,12 @@ app.post('/create-checkout-session', async (req, res) => {
       });
     }
 
+    const origin = req.headers.origin || 'http://localhost:' + PORT;
+
     const sessionConfig = {
       ui_mode: uiMode,
       line_items: items,
       mode: mode,
-      return_url: `${req.headers.origin || 'http://localhost:' + PORT}/return?session_id={CHECKOUT_SESSION_ID}`,
       phone_number_collection: {
         enabled: phoneNumberCollection,
       },
@@ -209,9 +210,23 @@ app.post('/create-checkout-session', async (req, res) => {
       }
     }
 
+    // URL configuration based on UI mode
+    if (uiMode === 'hosted') {
+      sessionConfig.success_url = `${origin}/return?session_id={CHECKOUT_SESSION_ID}`;
+      sessionConfig.cancel_url = `${origin}/hosted.html`;
+    } else {
+      sessionConfig.return_url = `${origin}/return?session_id={CHECKOUT_SESSION_ID}`;
+    }
+
     const session = await stripe.checkout.sessions.create(sessionConfig);
 
-    res.json({ clientSecret: session.client_secret, sessionId: session.id });
+    const response = { sessionId: session.id };
+    if (uiMode === 'embedded') {
+      response.clientSecret = session.client_secret;
+    } else {
+      response.url = session.url;
+    }
+    res.json(response);
   } catch (error) {
     console.error('Error creating checkout session:', error);
     res.status(500).json({ error: error.message });
@@ -264,6 +279,46 @@ app.get('/session-status', async (req, res) => {
       custom_fields: session.custom_fields,
       metadata: session.metadata,
       invoice: session.invoice,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create a payment intent for custom Elements checkout
+app.post('/create-payment-intent', async (req, res) => {
+  try {
+    const {
+      amount = 2000,
+      currency = 'usd',
+      productName = 'Sample Product',
+      metadata = {},
+    } = req.body;
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency,
+      automatic_payment_methods: { enabled: true },
+      metadata,
+      description: productName,
+    });
+
+    res.json({ clientSecret: paymentIntent.client_secret });
+  } catch (error) {
+    console.error('Error creating payment intent:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Retrieve payment intent status for return page
+app.get('/payment-status', async (req, res) => {
+  try {
+    const paymentIntent = await stripe.paymentIntents.retrieve(req.query.payment_intent);
+    res.json({
+      status: paymentIntent.status === 'succeeded' ? 'complete' : paymentIntent.status,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      customer_email: paymentIntent.receipt_email,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

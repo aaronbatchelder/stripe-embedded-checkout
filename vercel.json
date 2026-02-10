@@ -32,6 +32,14 @@
       "dest": "server.js"
     },
     {
+      "src": "/create-payment-intent",
+      "dest": "server.js"
+    },
+    {
+      "src": "/payment-status",
+      "dest": "server.js"
+    },
+    {
       "src": "/webhook",
       "dest": "server.js"
     },
