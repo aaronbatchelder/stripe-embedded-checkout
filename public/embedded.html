@@ -569,6 +569,38 @@
         </div>
       </div>
 
+      <!-- APPEARANCE LIMITATION -->
+      <div class="section-title collapsible active" onclick="toggleSection(this)">Appearance / Theming</div>
+      <div class="collapsible-content show">
+        <div style="background:#fff3e0;border:1px solid #ffe082;border-radius:8px;padding:14px 16px;margin-bottom:8px;">
+          <div style="font-size:12px;font-weight:700;color:#e65100;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px;">No code-level theme control</div>
+          <p style="font-size:13px;color:#795548;margin:0;line-height:1.5;">
+            Embedded Checkout does <strong>not</strong> support the Appearance API. The form's colors, fonts, and styling are controlled through your
+            <a href="https://dashboard.stripe.com/settings/branding" target="_blank" style="color:#e65100;font-weight:600;">Stripe Dashboard branding settings</a>, not through code.
+          </p>
+        </div>
+        <div style="background:#f6f9fc;border-radius:6px;padding:12px;font-size:12px;color:#525f7f;line-height:1.6;">
+          <strong style="color:#32325d;">What you can control from the Dashboard:</strong>
+          <ul style="margin:6px 0 0;padding-left:16px;">
+            <li>Brand logo</li>
+            <li>Brand color (buttons & links)</li>
+            <li>Accent color</li>
+            <li>Icon style</li>
+          </ul>
+          <strong style="color:#32325d;display:block;margin-top:10px;">What you cannot change at all:</strong>
+          <ul style="margin:6px 0 0;padding-left:16px;">
+            <li>Font family, sizes, or weights</li>
+            <li>Field styling or border radius</li>
+            <li>Spacing or layout within the form</li>
+            <li>Background color of the form itself</li>
+            <li>Custom CSS of any kind</li>
+          </ul>
+        </div>
+        <a href="/custom.html" style="display:block;text-align:center;margin-top:10px;padding:8px;background:#fce4ec;color:#c62828;border-radius:4px;font-size:12px;font-weight:600;text-decoration:none;">
+          Want full theme control? Try Embedded Components &rarr;
+        </a>
+      </div>
+
       <!-- ADVANCED -->
       <div class="section-title collapsible" onclick="toggleSection(this)">Advanced</div>
       <div class="collapsible-content">
@@ -614,12 +646,15 @@
     let checkout = null;
 
     // Load Stripe with key from server
-    async function initStripe() {
-      const res = await fetch('/config');
-      const { publishableKey } = await res.json();
-      stripe = Stripe(publishableKey);
-    }
-    initStripe();
+    const stripeReady = (async function initStripe() {
+      try {
+        const res = await fetch('/config');
+        const { publishableKey } = await res.json();
+        stripe = Stripe(publishableKey);
+      } catch (e) {
+        console.error('Failed to init Stripe:', e);
+      }
+    })();
     let customFields = [];
     let shippingOptions = [];
     let metadata = {};
@@ -630,6 +665,7 @@
       el.classList.toggle('active');
       el.nextElementSibling.classList.toggle('show');
     }
+
 
     function toggleSubscriptionOptions() {
       const mode = document.getElementById('mode').value;
@@ -825,6 +861,12 @@
       const checkoutDiv = document.getElementById('checkout');
       checkoutDiv.innerHTML = '<div class="loading">Loading checkout...</div>';
 
+      await stripeReady;
+      if (!stripe) {
+        checkoutDiv.innerHTML = '<div class="error"><strong>Error:</strong> Failed to load Stripe. Check that your API keys are configured.</div>';
+        return;
+      }
+
       const pmTypes = [];
       document.querySelectorAll('.pmType:checked').forEach(cb => pmTypes.push(cb.value));
 
@@ -920,7 +962,9 @@
           return;
         }
         if (checkout) checkout.destroy();
-        checkout = await stripe.initEmbeddedCheckout({ clientSecret: data.clientSecret });
+        checkout = await stripe.initEmbeddedCheckout({
+          clientSecret: data.clientSecret,
+        });
         checkoutDiv.innerHTML = '';
         checkout.mount('#checkout');
       } catch (error) {
