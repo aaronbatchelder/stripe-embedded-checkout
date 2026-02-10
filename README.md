@@ -1,24 +1,32 @@
-# Stripe Embedded Checkout Playground
+# Stripe Checkout Playground
 
-A fully-featured playground for testing Stripe Embedded Checkout customization options.
+An interactive playground for comparing and testing the 3 flavors of Stripe Checkout — built to help designers and non-technical stakeholders understand what can and can't be customized.
 
 **Live Demo:** https://stripe-embedded-checkout-opal.vercel.app
 
-## Features
+## Checkout Flavors
 
-- **Payment Modes** - One-time payments or subscriptions
-- **Button Types** - Pay, Book, Donate
-- **Data Collection** - Phone, shipping address, billing address, tax ID
-- **Shipping Rates** - Define shipping options with delivery estimates
-- **Discounts** - Pre-apply coupons, allow promotion codes
-- **Custom Fields** - Add up to 3 custom fields (text, dropdown, numeric)
-- **Custom Messages** - Submit button message, terms text, shipping info
-- **Consent Collection** - Terms acceptance, marketing opt-in
-- **Metadata** - Attach custom key/value data
-- **Trial Periods** - Free trials for subscriptions
-- **Localization** - 12+ languages
-- **Payment Methods** - Card, ACH, Link, Affirm, Afterpay, Klarna, Cash App, PayPal
-- **Advanced** - Session expiration, recovery, invoice creation
+### 1. Embedded Checkout (`/embedded.html`)
+Stripe's pre-built checkout form rendered in an iframe on your page. Minimal dev effort, but styling is limited to Stripe Dashboard branding settings.
+
+- Payment modes (one-time, subscription)
+- Button types (Pay, Book, Donate)
+- Data collection (phone, shipping, billing, tax ID)
+- Shipping rates with delivery estimates
+- Discounts and promotion codes
+- Custom fields (text, dropdown, numeric)
+- Custom messages and consent collection
+- Trial periods, session expiration, invoice creation
+- 12+ languages, multiple payment methods
+
+### 2. Stripe-Hosted Checkout (`/hosted.html`)
+Redirects to a Stripe-hosted page at `checkout.stripe.com`. Same features as embedded, but the customer leaves your site entirely.
+
+### 3. Custom Elements (`/custom.html`)
+Full UI control using Stripe's PaymentElement. Supports the Appearance API for complete visual customization — theme presets, custom colors, fonts, border radius, and more.
+
+### 4. Branded Checkout Demo (`/branded.html`)
+Shows how to wrap Embedded Checkout with school/company branding — custom header, colors, logo, marketing copy, and trust badges. Includes quick presets (ZTM-style, Blue Academy, Warm/Creative) and a live branding configurator.
 
 ## Setup
 
@@ -94,11 +102,17 @@ vercel --prod
 
 Use any future expiration date and any 3-digit CVC.
 
-## What You Can't Customize
+## Customization Trade-offs
 
-Embedded Checkout appearance (colors, fonts, logo) is controlled via your [Stripe Dashboard Branding Settings](https://dashboard.stripe.com/settings/branding), not the API.
+| | Embedded Checkout | Hosted Checkout | Custom Elements |
+|---|---|---|---|
+| **UI Control** | Low | None | Full |
+| **Dev Effort** | Low | Minimal | High |
+| **Styling** | Dashboard branding only | Dashboard branding only | Appearance API (colors, fonts, borders, themes) |
+| **Layout** | Fixed | Fixed | Your own HTML/CSS |
+| **PCI Scope** | SAQ-A | SAQ-A | SAQ-A (with Elements) |
 
-For full styling control, use [Stripe Elements](https://stripe.com/docs/payments/elements) instead.
+Embedded and Hosted Checkout appearance (colors, fonts, logo) is controlled via [Stripe Dashboard Branding Settings](https://dashboard.stripe.com/settings/branding), not the API. For full styling control, use Custom Elements with the [Appearance API](https://stripe.com/docs/elements/appearance-api).
 
 ## License
 
