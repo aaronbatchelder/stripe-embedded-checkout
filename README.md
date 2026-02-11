@@ -26,7 +26,7 @@ Redirects to a Stripe-hosted page at `checkout.stripe.com`. Same features as emb
 Full UI control using Stripe's PaymentElement. Supports the Appearance API for complete visual customization — theme presets, custom colors, fonts, border radius, and more.
 
 ### 4. Branded Checkout Demo (`/branded.html`)
-Shows how to wrap Embedded Checkout with school/company branding — custom header, colors, logo, marketing copy, and trust badges. Includes quick presets (ZTM-style, Blue Academy, Warm/Creative) and a live branding configurator.
+Shows how to wrap Embedded Checkout with school/company branding — custom header, colors, logo, marketing copy, and trust badges. Includes quick presets (Dark Tech, Blue Academy, Warm/Creative) and a live branding configurator.
 
 ## Setup
 

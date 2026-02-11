@@ -169,6 +169,10 @@
       max-width: 720px;
       margin: 0 auto;
       padding: 32px 20px;
+      transition: max-width 0.3s ease;
+    }
+    .checkout-page.layout-wide {
+      max-width: 1100px;
     }
 
     /* Left: Checkout form area */
@@ -297,7 +301,7 @@
 
     <label style="font-size:11px;color:#8898aa;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:8px;display:block;">Quick Presets</label>
     <div class="cfg-preset-row">
-      <button class="cfg-preset" onclick="loadPreset('ztm')">ZTM Style</button>
+      <button class="cfg-preset" onclick="loadPreset('dark')">Dark Tech</button>
       <button class="cfg-preset" onclick="loadPreset('blue')">Blue Academy</button>
       <button class="cfg-preset" onclick="loadPreset('warm')">Warm School</button>
     </div>
@@ -354,6 +358,14 @@
     <div class="cfg-group">
       <label>Trust Badge Text</label>
       <textarea id="cfgTrustText">30-day money-back guarantee. Cancel anytime. All transactions are secure and encrypted.</textarea>
+    </div>
+
+    <div class="cfg-group">
+      <label>Checkout Layout</label>
+      <select id="cfgLayout" onchange="toggleLayout(this.value)">
+        <option value="stacked">Stacked (narrow — summary on top)</option>
+        <option value="side-by-side">Side-by-side (wide — summary on left)</option>
+      </select>
     </div>
 
     <button class="cfg-btn" onclick="applyBranding()">Apply & Load Checkout</button>
@@ -424,14 +436,23 @@
       document.getElementById('configPanel').classList.toggle('show');
     }
 
+    function toggleLayout(value) {
+      const page = document.querySelector('.checkout-page');
+      if (value === 'side-by-side') {
+        page.classList.add('layout-wide');
+      } else {
+        page.classList.remove('layout-wide');
+      }
+    }
+
     function loadPreset(name) {
       const presets = {
-        ztm: {
-          schoolName: 'Zero To Mastery', logo: 'ZTM', tagline: 'Secure Checkout',
-          color: '#2d2d2d', productName: 'ZTM Academy Unlimited Access (Annual)',
+        dark: {
+          schoolName: 'DevPath Academy', logo: 'DP', tagline: 'Secure Checkout',
+          color: '#2d2d2d', productName: 'Unlimited Access (Annual)',
           productEmoji: '\u{1F680}', price: 29900,
           mode: 'subscription', headerText: 'Get started',
-          subtext: 'Join 1,000,000+ developers who have accelerated their careers with ZTM.',
+          subtext: 'Join thousands of developers who have accelerated their careers.',
           trustText: '30-day money-back guarantee',
         },
         blue: {
